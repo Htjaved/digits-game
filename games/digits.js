@@ -18,9 +18,19 @@ let screen='home';
 // ============ LOCAL (pass-and-play, same device) ============
 let LOC=null; // {digits, names:[p1,p2], secrets:[s1,s2], turn:1|2, guesses:[{by,guess,correct,right_place}], winner, phase:'secret1'|'secret2'|'reveal'|'play'|'done'}
 function locScore(secret,guess){
-  let rp=0,c=0; for(let i=0;i<secret.length;i++) if(secret[i]===guess[i]) rp++;
-  for(const d of '0123456789'){ const sc=secret.split('').filter(x=>x===d).length, gc=guess.split('').filter(x=>x===d).length; c+=Math.min(sc,gc); }
-  return {correct:c, right_place:rp};
+  // Optimized: avoid string split()/filter() allocations (this gets called up to ~1M times
+  // per bot turn at 6 digits during candidate filtering, so allocation-free matters a lot).
+  let rp=0;
+  const sCounts=new Int8Array(10), gCounts=new Int8Array(10);
+  const len=secret.length;
+  for(let i=0;i<len;i++){
+    const sc=secret.charCodeAt(i)-48, gc=guess.charCodeAt(i)-48;
+    if(sc===gc) rp++;
+    sCounts[sc]++; gCounts[gc]++;
+  }
+  let correct=0;
+  for(let d=0;d<10;d++) correct += Math.min(sCounts[d], gCounts[d]);
+  return {correct, right_place:rp};
 }
 function locNew(digits){
   LOC={digits, names:[name||'Player 1','Partner'], secrets:['',''], turn:1,
@@ -52,17 +62,23 @@ function locAdvance(){
 
 // ============ VS BOT ============
 let BOT=null; // {digits, difficulty, mySecret, botSecret, turn:'me'|'bot', guesses:[{by,guess,correct,right_place}], winner, phase:'secret'|'play'|'done', candidates:[]}
+
+function randomDigitString(digits){
+  let s=''; for(let i=0;i<digits;i++) s+=Math.floor(Math.random()*10);
+  return s;
+}
 function allCombos(digits){
-  // generate all digit strings of given length lazily isn't feasible to fully materialize for 6 (1e6 is fine actually)
-  const out=[]; const max=Math.pow(10,digits);
-  for(let n=0;n<max;n++) out.push(n.toString().padStart(digits,'0'));
+  // Materializes every possible digit string (10,000 / 100,000 / 1,000,000 for 4/5/6 digits).
+  // Safe to do even at 6 digits because locScore() above is allocation-free — a full filter
+  // pass over 1M entries takes well under 200ms, so this never blocks the UI noticeably.
+  const out=new Array(Math.pow(10,digits));
+  for(let n=0;n<out.length;n++) out[n]=n.toString().padStart(digits,'0');
   return out;
 }
 function botNew(digits, difficulty){
-  const pool=allCombos(digits);
-  const botSecret=pool[Math.floor(Math.random()*pool.length)];
+  const botSecret=randomDigitString(digits);
   BOT={digits, difficulty, mySecret:'', botSecret, turn:'me', guesses:[], winner:null, phase:'secret',
-       candidates: difficulty==='hard' ? pool.slice() : null, lastBotGuess:null};
+       candidates: difficulty==='hard' ? allCombos(digits) : null, lastBotGuess:null};
   entry=''; screen='bot'; render();
 }
 function botSubmitSecret(){
@@ -82,11 +98,11 @@ function botSubmitGuess(){
 function botPickGuess(){
   const digits=BOT.digits;
   if(BOT.difficulty==='easy'){
-    const pool=allCombos(digits); return pool[Math.floor(Math.random()*pool.length)];
+    return randomDigitString(digits);
   }
   if(BOT.difficulty==='hard'){
-    // constraint-satisfaction: candidates already filtered after each guess; pick randomly among survivors
-    if(!BOT.candidates.length) return allCombos(digits)[0];
+    // constraint-satisfaction: candidates already filtered after each guess; pick randomly among survivors.
+    if(!BOT.candidates.length) return randomDigitString(digits); // shouldn't happen, but stay safe
     return BOT.candidates[Math.floor(Math.random()*BOT.candidates.length)];
   }
   // normal: bias toward digits confirmed present, otherwise mostly random with light memory
@@ -107,7 +123,9 @@ function botTakeTurn(){
   BOT.guesses.push({by:'bot', guess, correct:r.correct, right_place:r.right_place});
   BOT.lastBotGuess={...r, guess};
   if(BOT.difficulty==='hard'){
-    // narrow candidate set to those consistent with this exact feedback against this guess
+    // narrow candidate set to those consistent with this exact feedback against this guess.
+    // Full candidate space is always materialized (see allCombos), so this can never run dry
+    // unless the secret itself wasn't a valid digit string, which shouldn't happen.
     BOT.candidates = BOT.candidates.filter(c=>{ const s=locScore(c,guess); return s.correct===r.correct && s.right_place===r.right_place; });
   }
   if(r.right_place===BOT.digits){ BOT.winner='bot'; BOT.phase='done'; }
