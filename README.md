@@ -1,7 +1,6 @@
 # Digits — a two-player number-guessing game
 
-A small static web game for two phones. Each player picks a secret 4- or 5-digit
-number, then players take turns guessing. After each guess you're told how many
+A small static web game for two phones. Solo or in teams (1v1 / 2v2 / 3v3), each side picks a secret 4-, 5- or 6-digit number, then players take turns guessing. After each guess you're told how many
 digits are correct and how many are in the right place. Built as a single
 `index.html` using the Supabase JS client over locked, server-side RPCs (no
 secret ever reaches the other phone). No build step.

@@ -26,13 +26,13 @@
     padding:max(16px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom));
     display:flex; justify-content:center;
   }
-  .wrap{width:100%; max-width:430px; margin:0 auto}
-  .top{display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:6px 2px 18px}
+  .wrap{width:100%; max-width:440px; margin:0 auto}
+  .top{display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:6px 2px 16px}
   .brand{display:flex; flex-direction:column; line-height:1}
   .eyebrow{font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--tomato); font-weight:700}
   .brand h1{font-family:Fraunces,serif; font-style:italic; font-weight:600; font-size:34px; margin:6px 0 0; letter-spacing:-.01em}
   .codechip{font-family:'Space Mono',monospace; font-size:13px; font-weight:700; letter-spacing:.18em;
-    background:var(--ink); color:#fff; padding:7px 10px; border-radius:8px; white-space:nowrap}
+    background:var(--ink); color:#fff; padding:7px 10px; border-radius:8px; white-space:nowrap; text-align:center}
   .codechip small{display:block; font-family:Inter; font-weight:600; font-size:9px; letter-spacing:.16em; opacity:.6; margin-bottom:2px}
 
   .card{background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:20px}
@@ -63,52 +63,61 @@
   .divider{display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; letter-spacing:.16em; text-transform:uppercase; margin:18px 2px}
   .divider::before,.divider::after{content:""; height:1px; background:var(--line); flex:1}
 
-  /* big shareable code */
   .bigcode{font-family:'Space Mono',monospace; font-weight:700; font-size:44px; letter-spacing:.2em;
-    text-align:center; padding:14px 0 4px; color:var(--ink)}
+    text-align:center; padding:10px 0 2px; color:var(--ink)}
   .copybtn{display:block; margin:2px auto 0; border:0; background:transparent; color:var(--tomato); font-weight:600; font-size:13px; cursor:pointer; padding:6px}
 
-  /* slots */
-  .slots{display:flex; gap:10px; justify-content:center; margin:6px 0 18px}
-  .slot{width:46px; height:60px; border-radius:11px; border:1.5px solid var(--line); background:#FCFAF5;
-    display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-size:30px; font-weight:700; color:var(--ink)}
+  .slots{display:flex; gap:9px; justify-content:center; margin:6px 0 16px; flex-wrap:wrap}
+  .slot{width:44px; height:58px; border-radius:11px; border:1.5px solid var(--line); background:#FCFAF5;
+    display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-size:28px; font-weight:700; color:var(--ink)}
   .slot.on{border-color:var(--ink)}
-  .slot .cur{width:2px; height:26px; background:var(--tomato); border-radius:2px; animation:blink 1s steps(2) infinite}
+  .slot .cur{width:2px; height:24px; background:var(--tomato); border-radius:2px; animation:blink 1s steps(2) infinite}
   @keyframes blink{50%{opacity:0}}
   .secret .slot{font-size:0}
-  .secret .slot.filled::after{content:"●"; font-size:18px; color:var(--ink)}
+  .secret .slot.filled::after{content:"●"; font-size:17px; color:var(--ink)}
 
-  /* keypad */
   .pad{display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-top:4px}
-  .key{height:58px; border:1.5px solid var(--line); background:#fff; border-radius:13px; font-family:'Space Mono',monospace;
-    font-size:24px; font-weight:700; color:var(--ink); cursor:pointer; transition:transform .04s, background .1s}
+  .key{height:56px; border:1.5px solid var(--line); background:#fff; border-radius:13px; font-family:'Space Mono',monospace;
+    font-size:23px; font-weight:700; color:var(--ink); cursor:pointer; transition:transform .04s, background .1s}
   .key:active{transform:translateY(1px); background:#F4EEE3}
   .key.util{font-family:Inter; font-size:15px; font-weight:700; color:var(--muted)}
 
-  /* turn banner */
+  .mynum{display:flex; align-items:center; justify-content:space-between; gap:10px; background:#fff;
+    border:1px dashed var(--tomato); border-radius:12px; padding:10px 15px; margin-bottom:12px}
+  .mynum span{font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted)}
+  .mynum b{font-family:'Space Mono',monospace; font-size:21px; letter-spacing:.16em; color:var(--ink)}
+
   .turn{display:flex; align-items:center; gap:10px; padding:13px 15px; border-radius:13px; margin-bottom:14px; font-weight:600; font-size:15px}
   .turn.you{background:var(--tomato); color:#fff}
   .turn.them{background:#F2ECDF; color:var(--ink)}
-  .turn .dot{width:9px; height:9px; border-radius:50%; background:currentColor; box-shadow:0 0 0 0 currentColor; animation:pulse 1.6s infinite}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}70%{box-shadow:0 0 0 7px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+  .turn .dot{width:9px; height:9px; border-radius:50%; background:currentColor; animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(226,86,59,.4)}70%{box-shadow:0 0 0 7px rgba(226,86,59,0)}100%{box-shadow:0 0 0 0 rgba(226,86,59,0)}}
 
-  /* receipt record */
-  .receipt{position:relative; background:#fff; border:1px solid var(--line); border-radius:0 0 12px 12px; padding:4px 14px 12px;
-    box-shadow:var(--shadow)}
+  .rosters{display:flex; gap:10px; margin:2px 0 6px}
+  .teambox{flex:1; border:1px solid var(--line); border-radius:12px; padding:12px; background:#FCFAF5}
+  .teambox.mine{border-color:var(--ink); background:#fff}
+  .teambox h4{margin:0 0 8px; font-size:11.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+  .teambox.mine h4{color:var(--tomato)}
+  .teambox ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:5px}
+  .teambox li{font-size:14.5px; font-weight:600}
+  .teambox li.w{color:#B6AB99; font-weight:500; font-style:italic}
+  .teambox li em{font-style:normal; color:var(--muted); font-weight:500; font-size:12px}
+  .secflag{display:block; margin-top:8px; font-size:11.5px; color:var(--green); font-weight:600}
+
+  .receipt{position:relative; background:#fff; border:1px solid var(--line); border-radius:0 0 12px 12px; padding:4px 14px 12px; box-shadow:var(--shadow)}
   .receipt::before{content:""; position:absolute; left:0; right:0; top:-7px; height:8px;
-    background:radial-gradient(circle at 6px 8px, transparent 5.5px, #fff 6px) repeat-x; background-size:12px 8px;
-    filter:drop-shadow(0 -1px 0 var(--line))}
+    background:radial-gradient(circle at 6px 8px, transparent 5.5px, #fff 6px) repeat-x; background-size:12px 8px; filter:drop-shadow(0 -1px 0 var(--line))}
   .rhead{display:flex; justify-content:space-between; align-items:center; padding:12px 0 8px; border-bottom:1px dashed var(--line)}
-  .rhead .who{font-weight:700; font-size:13px; letter-spacing:.02em}
+  .rhead .who{font-weight:700; font-size:12.5px; letter-spacing:.02em}
   .rhead .cnt{font-family:'Space Mono',monospace; font-size:12px; color:var(--muted)}
   .grow{display:block; margin-top:10px}
   .empty{color:var(--muted); font-size:13.5px; text-align:center; padding:16px 4px; font-style:italic}
-  .gline{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dotted #EFE7D8}
+  .gline{display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px dotted #EFE7D8}
   .gline:last-child{border-bottom:0}
-  .gnum{font-family:'Space Mono',monospace; font-size:11px; color:#B6AB99; width:20px; flex:none}
-  .gdigits{font-family:'Space Mono',monospace; font-size:19px; font-weight:700; letter-spacing:.12em; flex:1}
-  .pill{display:inline-flex; align-items:center; gap:4px; font-family:'Space Mono',monospace; font-weight:700;
-    font-size:12.5px; padding:4px 8px; border-radius:7px; white-space:nowrap}
+  .gnum{font-family:'Space Mono',monospace; font-size:11px; color:#B6AB99; width:18px; flex:none}
+  .gdigits{font-family:'Space Mono',monospace; font-size:18px; font-weight:700; letter-spacing:.1em; flex:1}
+  .tag{font-size:10px; color:var(--muted); background:#F2ECDF; border-radius:5px; padding:2px 5px; font-weight:600; flex:none}
+  .pill{display:inline-flex; align-items:center; gap:4px; font-family:'Space Mono',monospace; font-weight:700; font-size:12.5px; padding:4px 7px; border-radius:7px; white-space:nowrap; flex:none}
   .pill.place{background:var(--green-bg); color:var(--green)}
   .pill.corr{background:var(--amber-bg); color:var(--amber)}
   .win{color:var(--tomato)} .winrow{background:#FCEEEA}
@@ -118,11 +127,14 @@
 
   .result{display:flex; flex-direction:column; align-items:center; text-align:center; padding:6px 0}
   .result h2{font-family:Fraunces,serif; font-style:italic; font-weight:600; font-size:30px; margin:4px 0 6px}
-  .reveal{display:flex; gap:20px; justify-content:center; margin:14px 0 4px}
+  .reveal{display:flex; gap:20px; justify-content:center; margin:14px 0 4px; flex-wrap:wrap}
   .reveal div{display:flex; flex-direction:column; gap:5px}
   .reveal .lbl{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
-  .reveal .num{font-family:'Space Mono',monospace; font-size:24px; font-weight:700; letter-spacing:.1em}
+  .reveal .num{font-family:'Space Mono',monospace; font-size:22px; font-weight:700; letter-spacing:.1em}
 
+  .locked{display:flex; align-items:center; gap:10px; justify-content:center; padding:4px 0 2px;
+    font-family:'Space Mono',monospace; font-weight:700; font-size:20px; letter-spacing:.18em}
+  .setby{text-align:center; color:var(--muted); font-size:12px; margin:6px 0 12px}
   .err{background:#FCEAE5; color:var(--tomato-d); border:1px solid #F3CFC6; padding:10px 13px; border-radius:10px; font-size:13.5px; font-weight:500; margin-bottom:12px}
   .foot{text-align:center; color:#B6AB99; font-size:11px; margin:20px 0 4px; letter-spacing:.04em}
   .linkbtn{background:none; border:0; color:var(--muted); text-decoration:underline; cursor:pointer; font-size:12.5px; padding:8px}
@@ -132,180 +144,154 @@
 <body>
   <div class="wrap">
     <div class="top">
-      <div class="brand">
-        <span class="eyebrow">Table game</span>
-        <h1>Digits</h1>
-      </div>
+      <div class="brand"><span class="eyebrow">Table game</span><h1>Digits</h1></div>
       <div id="codeChip"></div>
     </div>
     <div id="app"></div>
-    <div class="foot" id="foot">Pick a number · trade guesses · crack the code</div>
+    <div class="foot">Pick a number · trade guesses · crack the code</div>
   </div>
 
 <script type="module">
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+const SB_URL='https://iwwodozxqsgbaghndncs.supabase.co';
+const SB_KEY='sb_publishable_dMtLijCoMrB4S7b6esp4oQ_ICgLZX0x';
+const sb=createClient(SB_URL,SB_KEY);
 
-const SB_URL = 'https://iwwodozxqsgbaghndncs.supabase.co';
-const SB_KEY = 'sb_publishable_dMtLijCoMrB4S7b6esp4oQ_ICgLZX0x';
-const sb = createClient(SB_URL, SB_KEY);
+function uid(){return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));}
+let token=localStorage.getItem('ngg_token'); if(!token){token=uid();localStorage.setItem('ngg_token',token);}
+let name=localStorage.getItem('ngg_name')||'';
+let code=localStorage.getItem('ngg_code')||'';
 
-// ---- persistent device identity ----
-function uid(){ return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)); }
-let token = localStorage.getItem('ngg_token'); if(!token){ token = uid(); localStorage.setItem('ngg_token', token); }
-let name  = localStorage.getItem('ngg_name') || '';
-let code  = localStorage.getItem('ngg_code') || '';
+let S=null, entry='', mode=null, err='', poll=null, lastSig='', lastResult=null;
+let newDigits=4, newTeam=1, editSecret=false;
 
-// ---- ui state ----
-let S = null;              // latest server state
-let entry = '';            // current keypad entry
-let mode = null;           // 'secret' | 'guess'
-let newDigits = 4;         // for create screen
-let err = '';
-let poll = null;
-let lastSig = '';
-let lastResult = null;     // {correct,right_place} flash after a guess
+const app=document.getElementById('app');
+const chip=document.getElementById('codeChip');
+const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sp=s=>String(s).split('').join(' ');
 
-const app = document.getElementById('app');
-const chip = document.getElementById('codeChip');
-const esc = s => (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function rpc(fn,args){const{data,error}=await sb.rpc(fn,args); if(error) throw new Error((error.message||'').replace(/^.*?:\s*/,'')||'error'); return data;}
+const FR={GAME_NOT_FOUND:'No game with that code. Check it and try again.',GAME_FULL:'That game is already full.',
+  NOT_YOUR_TURN:'Hold on — it’s not your turn yet.',NOT_PLAYING:'The game isn’t ready yet.',
+  BAD_GUESS:'Enter all the digits first.',BAD_SECRET:'Enter all the digits first.',
+  LOCKED:'The game already started — numbers are locked.',NOT_A_PLAYER:'You’re not in this game anymore.'};
+const fr=m=>FR[m]||m||'Something went wrong.';
 
-async function rpc(fn, args){
-  const { data, error } = await sb.rpc(fn, args);
-  if(error) throw new Error((error.message||'').replace(/^.*?:\s*/, '') || 'error');
-  return data;
-}
-const FRIENDLY = {
-  GAME_NOT_FOUND:'No game with that code. Check it and try again.',
-  GAME_FULL:'That game already has two players.',
-  NOT_YOUR_TURN:'Hold on — it’s your partner’s turn.',
-  NOT_PLAYING:'The game isn’t ready yet.',
-  BAD_GUESS:'Enter all the digits first.',
-  BAD_SECRET:'Enter all the digits first.',
-  NOT_A_PLAYER:'You’re not in this game anymore.',
-};
-const friendly = m => FRIENDLY[m] || m || 'Something went wrong.';
+// ---- helpers ----
+const P=()=>S?.players||[];
+const teamOf=t=>P().filter(p=>p.team===t);
+const oppT=()=>S.my_team===1?2:1;
+const nameOfSlot=s=>(P().find(p=>p.slot===s)||{}).name||'someone';
+const isTeam=()=>S.team_size>1;
+const teamTitle=t=>isTeam()?('Team '+t):(t===S.my_team?'You':(teamOf(t)[0]?.name||'Opponent'));
+const vsLabel=()=>isTeam()?('Team '+oppT()):(teamOf(oppT())[0]?.name||'your opponent');
+const secretSet=t=>!!(S.secrets&&S.secrets[String(t)]);
 
-// ---------- actions ----------
+// ---- actions ----
+function grabName(){const el=document.getElementById('nameIn'); if(el) name=el.value;}
 async function createGame(){
-  err=''; const nm = (document.getElementById('nameIn')?.value||'').trim();
-  if(nm){ name=nm; localStorage.setItem('ngg_name',nm); }
-  try{
-    code = await rpc('ngg_create_game', { p_digits:newDigits, p_name:name, p_token:token });
-    localStorage.setItem('ngg_code', code);
-    entry=''; mode='secret';
-    await refresh(true); startPoll();
-  }catch(e){ err=friendly(e.message); render(); }
+  err=''; grabName(); name=(name||'').trim(); if(name) localStorage.setItem('ngg_name',name);
+  try{ code=await rpc('ngg_create_game',{p_digits:newDigits,p_team_size:newTeam,p_name:name,p_token:token});
+    localStorage.setItem('ngg_code',code); entry=''; editSecret=false; await refresh(true); startPoll();
+  }catch(e){err=fr(e.message);render();}
 }
 async function joinGame(){
-  err=''; const nm=(document.getElementById('nameIn')?.value||'').trim();
+  err=''; grabName(); name=(name||'').trim(); if(name) localStorage.setItem('ngg_name',name);
   const cd=(document.getElementById('codeIn')?.value||'').trim().toUpperCase();
-  if(nm){ name=nm; localStorage.setItem('ngg_name',nm); }
-  if(cd.length<4){ err='Enter the 4-letter game code.'; return render(); }
-  try{
-    await rpc('ngg_join_game', { p_code:cd, p_name:name, p_token:token });
-    code=cd; localStorage.setItem('ngg_code',cd);
-    entry=''; mode='secret';
-    await refresh(true); startPoll();
-  }catch(e){ err=friendly(e.message); render(); }
+  if(cd.length<4){err='Enter the 4-letter game code.';return render();}
+  try{ await rpc('ngg_join_game',{p_code:cd,p_name:name,p_token:token});
+    code=cd; localStorage.setItem('ngg_code',cd); entry=''; editSecret=false; await refresh(true); startPoll();
+  }catch(e){err=fr(e.message);render();}
 }
 async function submitSecret(){
-  err='';
-  if(entry.length!==S.digits){ err='Enter all '+S.digits+' digits.'; return render(); }
-  try{ await rpc('ngg_set_secret', { p_code:code, p_token:token, p_secret:entry }); entry=''; mode=null; await refresh(true); }
-  catch(e){ err=friendly(e.message); render(); }
+  err=''; if(entry.length!==S.digits){err='Enter all '+S.digits+' digits.';return render();}
+  try{ await rpc('ngg_set_secret',{p_code:code,p_token:token,p_secret:entry}); entry=''; mode=null; editSecret=false; await refresh(true);}
+  catch(e){err=fr(e.message);render();}
 }
 async function submitGuess(){
-  err='';
-  if(entry.length!==S.digits){ err='Enter all '+S.digits+' digits.'; return render(); }
-  const g=entry;
-  try{
-    const r = await rpc('ngg_make_guess', { p_code:code, p_token:token, p_guess:g });
-    entry=''; lastResult={...r, guess:g}; await refresh(true);
-  }catch(e){ err=friendly(e.message); render(); }
+  err=''; if(entry.length!==S.digits){err='Enter all '+S.digits+' digits.';return render();}
+  try{ const r=await rpc('ngg_make_guess',{p_code:code,p_token:token,p_guess:entry}); entry=''; lastResult={...r,guess:entry?entry:r.guess}; await refresh(true);}
+  catch(e){err=fr(e.message);render();}
 }
-function leaveGame(){
-  if(poll) clearInterval(poll), poll=null;
-  code=''; S=null; entry=''; mode=null; err=''; lastResult=null; lastSig='';
-  localStorage.removeItem('ngg_code'); render();
-}
-function newRound(){ leaveGame(); }
+function leaveGame(){ if(poll){clearInterval(poll);poll=null;} code='';S=null;entry='';mode=null;err='';lastResult=null;lastSig='';editSecret=false;
+  localStorage.removeItem('ngg_code'); render(); }
 
-// ---------- polling ----------
-function startPoll(){ if(poll) clearInterval(poll); poll=setInterval(()=>refresh(false), 1500); }
+// ---- polling ----
+function startPoll(){ if(poll) clearInterval(poll); poll=setInterval(()=>refresh(false),1500); }
 async function refresh(force){
   if(!code) return;
-  try{
-    const data = await rpc('ngg_state', { p_code:code, p_token:token });
-    S = data;
-    const sig = [S.status,S.turn,S.winner,(S.guesses||[]).length, (S.players||[]).map(p=>p.has_secret).join('')].join('|');
-    if(force || sig!==lastSig){ lastSig=sig; render(); }
-    if(S.status==='finished' && poll){ clearInterval(poll); poll=null; }
-  }catch(e){
-    if(/GAME_NOT_FOUND/.test(e.message)){ leaveGame(); }
-  }
+  try{ const d=await rpc('ngg_state',{p_code:code,p_token:token}); S=d;
+    const sig=[S.status,S.turn,S.winner,(S.guesses||[]).length,(S.players||[]).length,JSON.stringify(S.secrets)].join('|');
+    if(force||sig!==lastSig){lastSig=sig;render();}
+    if(S.status==='finished'&&poll){clearInterval(poll);poll=null;}
+  }catch(e){ if(/GAME_NOT_FOUND/.test(e.message)) leaveGame(); }
 }
 
-// ---------- keypad ----------
-function press(d){ const max=S?.digits||5; if(entry.length<max){ entry+=d; renderEntry(); } }
-function back(){ entry=entry.slice(0,-1); renderEntry(); }
+// ---- keypad ----
+function press(d){const max=S?.digits||6; if(entry.length<max){entry+=d;renderEntry();}}
+function back(){entry=entry.slice(0,-1);renderEntry();}
 function renderEntry(){
   const box=document.getElementById('slots'); if(!box) return;
-  const max=S?.digits||5; const secret = mode==='secret';
-  let h=''; for(let i=0;i<max;i++){ const f=i<entry.length;
-    h+=`<div class="slot ${f?'on filled':''}">${secret? '' : (f?esc(entry[i]):(i===entry.length?'<span class=cur></span>':''))}</div>`; }
+  const max=S?.digits||6, secret=mode==='secret';
+  let h=''; for(let i=0;i<max;i++){const f=i<entry.length;
+    h+=`<div class="slot ${f?'on filled':''}">${secret?'':(f?esc(entry[i]):(i===entry.length?'<span class=cur></span>':''))}</div>`;}
   box.innerHTML=h;
-  const act=document.getElementById('actBtn'); if(act) act.disabled = entry.length!==max;
+  const a=document.getElementById('actBtn'); if(a) a.disabled=entry.length!==max;
 }
-function keypad(){
-  return `<div class="pad">
-    ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="key" data-k="${n}">${n}</button>`).join('')}
-    <button class="key util" data-act="back">⌫</button>
-    <button class="key" data-k="0">0</button>
-    <button class="key util" data-act="clear">clear</button>
-  </div>`;
-}
+const keypad=()=>`<div class="pad">
+  ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="key" data-k="${n}">${n}</button>`).join('')}
+  <button class="key util" data-act="back">⌫</button>
+  <button class="key" data-k="0">0</button>
+  <button class="key util" data-act="clear">clear</button></div>`;
 
-// ---------- name helpers ----------
-function partnerName(){ const me=S?.my_slot; const p=(S?.players||[]).find(x=>x.slot!==me); return p?.name || 'your partner'; }
-function meName(){ const me=S?.my_slot; const p=(S?.players||[]).find(x=>x.slot===me); return p?.name || 'You'; }
-
-// ---------- record rendering ----------
-function recordRows(list, digits){
+// ---- record rendering ----
+function rows(list,digits){
   if(!list.length) return `<div class="empty">No guesses yet.</div>`;
-  return list.map((g,i)=>{
-    const win=g.right_place===digits;
+  return list.map((g,i)=>{const win=g.right_place===digits;
     return `<div class="gline ${win?'winrow':''}">
       <span class="gnum">${i+1}</span>
-      <span class="gdigits ${win?'win':''}">${g.guess.split('').join(' ')}</span>
+      <span class="gdigits ${win?'win':''}">${sp(g.guess)}</span>
+      ${isTeam()?`<span class="tag">${esc(g.name)}</span>`:''}
       <span class="pill place">◉ ${g.right_place}</span>
-      <span class="pill corr">◆ ${g.correct}</span>
-    </div>`;
-  }).join('');
+      <span class="pill corr">◆ ${g.correct}</span></div>`;}).join('');
 }
-function receipt(title, count, rowsHtml){
-  return `<div class="receipt">
-    <div class="rhead"><span class="who">${esc(title)}</span><span class="cnt">${count} ${count===1?'guess':'guesses'}</span></div>
-    ${rowsHtml}
-  </div>`;
-}
-const legend = `<div class="legend">
+const receipt=(title,count,html)=>`<div class="receipt">
+  <div class="rhead"><span class="who">${title}</span><span class="cnt">${count} ${count===1?'guess':'guesses'}</span></div>${html}</div>`;
+const legend=`<div class="legend">
   <span><span class="swatch" style="background:var(--green)"></span>◉ right digit, right spot</span>
-  <span><span class="swatch" style="background:var(--amber)"></span>◆ right digit (total correct)</span>
-</div>`;
+  <span><span class="swatch" style="background:var(--amber)"></span>◆ right digit (total correct)</span></div>`;
 
-// ---------- screens ----------
+// ---- rosters ----
+function rosterBox(t){
+  const mem=teamOf(t), n=S.team_size;
+  let li=mem.map(p=>`<li>${esc(p.name)}${p.slot===S.my_slot?' <em>(you)</em>':''}</li>`);
+  for(let i=mem.length;i<n;i++) li.push('<li class="w">waiting…</li>');
+  return `<div class="teambox ${t===S.my_team?'mine':''}">
+    <h4>${teamTitle(t)}${t===S.my_team&&isTeam()?' · you':''}</h4>
+    <ul>${li.join('')}</ul>
+    <span class="secflag">${secretSet(t)?'✓ number locked':''}</span></div>`;
+}
+
+// ---- screens ----
 function viewHome(){
-  return `
-  ${err?`<div class="err">${esc(err)}</div>`:''}
+  return `${err?`<div class="err">${esc(err)}</div>`:''}
   <div class="card">
-    <p class="lede">A quick code-cracking game for two phones. You each pick a secret number, then take turns guessing — your partner tells you how close you are.</p>
+    <p class="lede">A quick code-cracking game for two phones — or two teams. Everyone picks a secret number, then you take turns guessing. After each guess you learn how many digits are right, and how many sit in the right spot.</p>
     <label class="fld" for="nameIn">Your name</label>
     <input class="text" id="nameIn" maxlength="16" placeholder="e.g. ${esc(name||'Nihal')}" value="${esc(name)}" />
     <div style="height:18px"></div>
-    <label class="fld">Secret number length</label>
-    <div class="seg" id="seg">
+    <label class="fld">Players</label>
+    <div class="seg" id="segTeam">
+      <button data-t="1" aria-pressed="${newTeam===1}">1 v 1</button>
+      <button data-t="2" aria-pressed="${newTeam===2}">2 v 2</button>
+      <button data-t="3" aria-pressed="${newTeam===3}">3 v 3</button>
+    </div>
+    <div style="height:14px"></div>
+    <label class="fld">Number length</label>
+    <div class="seg" id="segDig">
       <button data-d="4" aria-pressed="${newDigits===4}">4 digits</button>
       <button data-d="5" aria-pressed="${newDigits===5}">5 digits</button>
+      <button data-d="6" aria-pressed="${newDigits===6}">6 digits</button>
     </div>
     <div style="height:16px"></div>
     <button class="btn" id="createBtn">Start a new game</button>
@@ -317,141 +303,117 @@ function viewHome(){
     </div>
   </div>`;
 }
-function viewSecret(){
-  const waitJoin = S.status==='waiting';
-  return `
-  ${err?`<div class="err">${esc(err)}</div>`:''}
-  <div class="card secret">
-    <p class="lede">Pick your secret <b>${S.digits}-digit number</b>. Keep it hidden from ${esc(partnerName())}! Repeats and a leading zero are fine.</p>
-    <div class="slots" id="slots"></div>
-    ${keypad()}
-    <div style="height:14px"></div>
-    <button class="btn" id="actBtn" disabled>Lock in my number</button>
-  </div>
-  ${waitJoin?`<div class="card"><p class="lede" style="margin:0">Share the code up top with ${esc(partnerName())} so they can join on their phone.</p></div>`:''}`;
-}
-function viewWait(){
-  const me=S.my_slot;
-  const meSet=(S.players.find(p=>p.slot===me)||{}).has_secret;
-  const them=S.players.find(p=>p.slot!==me);
-  let msg;
-  if(S.status==='waiting'||!them){ msg=`Waiting for ${esc(partnerName())} to join. Share the code above.`; }
-  else if(!them.has_secret){ msg=`${esc(them.name)} is choosing their secret number…`; }
-  else { msg='Getting things ready…'; }
-  return `
+function viewLobby(){
+  const need=S.need, have=P().length, full=have>=need;
+  const mySet=!!S.my_secret, showPad=!mySet||editSecret;
+  const numWord=isTeam()?"your team's":"your";
+  // status line
+  let status;
+  if(!full){ const left=need-have; status=`Waiting for ${left} more player${left>1?'s':''}. Share the code.`; }
+  else if(!(secretSet(1)&&secretSet(2))){
+    const waitT = !secretSet(1)?1:2;
+    status = waitT===S.my_team ? `Your team still needs to lock in a number.` : `Waiting for ${teamTitle(waitT)} to choose a number…`;
+  } else status='Starting…';
+  return `${err?`<div class="err">${esc(err)}</div>`:''}
   <div class="card">
     <div class="bigcode">${esc(S.code)}</div>
     <button class="copybtn" id="copyBtn">Copy game code</button>
-    <div class="divider">status</div>
-    <div class="turn them"><span class="dot"></span>${msg}</div>
-    ${meSet?`<p class="lede" style="margin:10px 0 0; text-align:center">Your number is locked in. ✓</p>`
-            :`<button class="btn" id="toSecret">Set my secret number</button>`}
-    <button class="linkbtn" id="leaveBtn" style="display:block;margin:14px auto 0">Leave game</button>
-  </div>`;
+    <div class="rosters">${rosterBox(1)}${rosterBox(2)}</div>
+    <div class="turn them" style="margin:8px 0 4px"><span class="dot"></span>${status}</div>
+  </div>
+  <div class="card ${showPad?'secret':''}">
+    ${showPad?`<p class="lede">Pick ${numWord} secret <b>${S.digits}-digit number</b>. ${isTeam()?'One number for the whole team — agree on it together.':'Keep it hidden from '+vsLabel()+'!'} Repeats and a leading zero are fine.</p>
+      <div class="slots" id="slots"></div>${keypad()}<div style="height:14px"></div>
+      <button class="btn" id="actBtn" disabled>${mySet?'Update our number':'Lock in '+(isTeam()?'our':'my')+' number'}</button>
+      ${mySet?`<button class="linkbtn" id="cancelEdit" style="display:block;margin:10px auto 0">Keep current number</button>`:''}`
+    :`<p class="lede" style="margin-bottom:10px">${isTeam()?"Your team's number is locked in.":"Your number is locked in."}</p>
+      <div class="locked">${sp(S.my_secret)}</div>
+      <div class="setby">${isTeam()&&S.secrets[String(S.my_team)]?'set by '+esc(S.secrets[String(S.my_team)]):'only your side can see this'}</div>
+      <button class="btn ghost" id="changeBtn">Change our number</button>`}
+  </div>
+  <button class="linkbtn" id="leaveBtn" style="display:block;margin:14px auto 0">Leave game</button>`;
 }
 function viewPlay(){
-  const me=S.my_slot;
-  const yours = (S.guesses||[]).filter(g=>g.guesser===me);      // my guesses vs partner's number
-  const theirs= (S.guesses||[]).filter(g=>g.guesser!==me);      // partner's guesses vs my number
-  const myTurn = S.turn===me;
-  const flash = lastResult ? `<div class="card" style="padding:14px 18px"><div style="display:flex;align-items:center;gap:10px;justify-content:center">
-      <span class="gdigits" style="flex:none">${lastResult.guess.split('').join(' ')}</span>
+  const me=S.my_slot, myTurn=S.turn===me;
+  const ours=(S.guesses||[]).filter(g=>g.team===S.my_team);
+  const theirs=(S.guesses||[]).filter(g=>g.team!==S.my_team);
+  const numLbl=isTeam()?"Your team's number":"Your number";
+  const last=(S.guesses||[])[(S.guesses||[]).length-1];
+  const showFlash=lastResult&&last&&last.slot===me;
+  const flash=showFlash?`<div class="card" style="padding:13px 16px;margin-bottom:14px"><div style="display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap">
+      <span class="gdigits" style="flex:none">${sp(lastResult.guess)}</span>
       <span class="pill place">◉ ${lastResult.right_place} in place</span>
-      <span class="pill corr">◆ ${lastResult.correct} correct</span></div></div>` : '';
-  return `
-  ${err?`<div class="err">${esc(err)}</div>`:''}
-  <div class="turn ${myTurn?'you':'them'}"><span class="dot"></span>
-    ${myTurn? `Your turn — guess ${esc(partnerName())}’s number` : `Waiting for ${esc(partnerName())} to guess…`}</div>
-
+      <span class="pill corr">◆ ${lastResult.correct} correct</span></div></div>`:'';
+  const activeName=nameOfSlot(S.turn);
+  const turnTxt=myTurn?`Your turn — guess ${vsLabel()}’s number`
+    :`Waiting for ${esc(activeName)}${isTeam()?` (Team ${S.turn_team})`:''} to guess…`;
+  return `${err?`<div class="err">${esc(err)}</div>`:''}
+  <div class="mynum"><span>${numLbl}</span><b>${S.my_secret?sp(S.my_secret):'—'}</b></div>
+  <div class="turn ${myTurn?'you':'them'}"><span class="dot"></span>${turnTxt}</div>
   ${myTurn?`<div class="card">
-    <div class="slots" id="slots"></div>
-    ${keypad()}
-    <div style="height:14px"></div>
-    <button class="btn" id="actBtn" disabled>Submit guess</button>
-  </div>`: flash}
-
+    <div class="slots" id="slots"></div>${keypad()}<div style="height:14px"></div>
+    <button class="btn" id="actBtn" disabled>Submit guess</button></div>`:flash}
   <div class="grow"></div>
-  ${receipt(`Your guesses · ${esc(partnerName())}’s number`, yours.length, recordRows(yours, S.digits))}
+  ${receipt(`${isTeam()?'Your team':'You'} · guessing ${vsLabel()}`, ours.length, rows(ours,S.digits))}
   <div style="height:14px"></div>
-  ${receipt(`${esc(partnerName())}’s guesses · your number`, theirs.length, recordRows(theirs, S.digits))}
+  ${receipt(`${vsLabel()} · guessing ${isTeam()?'your team':'you'}`, theirs.length, rows(theirs,S.digits))}
   ${legend}
   <button class="linkbtn" id="leaveBtn" style="display:block;margin:12px auto 0">Leave game</button>`;
 }
 function viewDone(){
-  const me=S.my_slot;
-  const iWon = S.winner===me;
-  const yours=(S.guesses||[]).filter(g=>g.guesser===me);
-  const theirs=(S.guesses||[]).filter(g=>g.guesser!==me);
-  const rev=S.reveal||{};
-  const mySecret = rev[String(me)] ?? '—';
-  const opp = me===1?2:1; const theirSecret = rev[String(opp)] ?? '—';
-  return `
-  <div class="card">
-    <div class="result">
+  const iWon=S.winner===S.my_team;
+  const ours=(S.guesses||[]).filter(g=>g.team===S.my_team);
+  const theirs=(S.guesses||[]).filter(g=>g.team!==S.my_team);
+  const rev=S.reveal||{}; const mine=rev[String(S.my_team)]??'—'; const their=rev[String(oppT())]??'—';
+  const winLabel=isTeam()?`Team ${S.winner}`:nameOfSlot((teamOf(S.winner)[0]||{}).slot);
+  return `<div class="card"><div class="result">
       <span class="eyebrow" style="color:${iWon?'var(--green)':'var(--muted)'}">${iWon?'You cracked it':'Game over'}</span>
-      <h2>${iWon?'You win! 🎉':`${esc(partnerName())} wins`}</h2>
-      <p class="lede" style="margin:2px 0 0">${iWon? `You guessed ${esc(partnerName())}’s number in ${yours.length} ${yours.length===1?'try':'tries'}.` : `${esc(partnerName())} cracked your number first.`}</p>
+      <h2>${iWon?'You win! 🎉':`${esc(winLabel)} wins`}</h2>
+      <p class="lede" style="margin:2px 0 0">${iWon?`${isTeam()?'Your team':'You'} guessed it in ${ours.length} ${ours.length===1?'try':'tries'}.`:`${esc(vsLabel())} cracked your number first.`}</p>
       <div class="reveal">
-        <div><span class="lbl">Your number</span><span class="num">${esc(mySecret.split('').join(' '))}</span></div>
-        <div><span class="lbl">${esc(partnerName())}’s</span><span class="num">${esc(theirSecret.split('').join(' '))}</span></div>
-      </div>
-    </div>
+        <div><span class="lbl">${isTeam()?'Your team':'You'}</span><span class="num">${sp(mine)}</span></div>
+        <div><span class="lbl">${esc(vsLabel())}</span><span class="num">${sp(their)}</span></div>
+      </div></div>
     <button class="btn" id="againBtn">Play again</button>
   </div>
   <div class="grow"></div>
-  ${receipt(`Your guesses`, yours.length, recordRows(yours, S.digits))}
+  ${receipt(`${isTeam()?'Your team':'You'} · guesses`, ours.length, rows(ours,S.digits))}
   <div style="height:14px"></div>
-  ${receipt(`${esc(partnerName())}’s guesses`, theirs.length, recordRows(theirs, S.digits))}
+  ${receipt(`${esc(vsLabel())} · guesses`, theirs.length, rows(theirs,S.digits))}
   ${legend}`;
 }
 
-// ---------- render + wiring ----------
 function render(){
-  // code chip
-  chip.innerHTML = (S && code && S.status!=='finished') ? `<div class="codechip"><small>CODE</small>${esc(S.code)}</div>` : '';
+  chip.innerHTML=(S&&code&&S.status!=='finished')?`<div class="codechip"><small>CODE</small>${esc(S.code)}</div>`:'';
   let html;
-  if(!code || !S){ html=viewHome(); }
-  else if(S.status==='finished'){ html=viewDone(); }
-  else {
-    const me=S.my_slot;
-    const meSet=(S.players.find(p=>p.slot===me)||{}).has_secret;
-    if(S.status==='playing'){ html=viewPlay(); }
-    else if(mode==='secret' && !meSet){ html=viewSecret(); }
-    else { html=viewWait(); }
-  }
-  app.innerHTML=html;
-  wire();
+  if(!code||!S) html=viewHome();
+  else if(S.status==='finished') html=viewDone();
+  else if(S.status==='playing') html=viewPlay();
+  else { mode=( !S.my_secret || editSecret )?'secret':null; html=viewLobby(); }
+  app.innerHTML=html; wire();
   if(document.getElementById('slots')) renderEntry();
 }
 function wire(){
-  const on=(id,ev,fn)=>{ const el=document.getElementById(id); if(el) el.addEventListener(ev,fn); };
-  on('createBtn','click',createGame);
-  on('joinBtn','click',joinGame);
-  document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{ newDigits=+b.dataset.d; render(); }));
-  const ci=document.getElementById('codeIn'); if(ci) ci.addEventListener('keydown',e=>{ if(e.key==='Enter') joinGame(); });
-  // keypad
+  const on=(id,ev,fn)=>{const el=document.getElementById(id); if(el) el.addEventListener(ev,fn);};
+  on('createBtn','click',createGame); on('joinBtn','click',joinGame);
+  document.querySelectorAll('#segTeam button').forEach(b=>b.addEventListener('click',()=>{grabName();newTeam=+b.dataset.t;render();}));
+  document.querySelectorAll('#segDig button').forEach(b=>b.addEventListener('click',()=>{grabName();newDigits=+b.dataset.d;render();}));
+  const ci=document.getElementById('codeIn'); if(ci) ci.addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
   document.querySelectorAll('.key[data-k]').forEach(k=>k.addEventListener('click',()=>press(k.dataset.k)));
-  document.querySelectorAll('.key[data-act]').forEach(k=>k.addEventListener('click',()=>{ k.dataset.act==='back'?back():(entry='',renderEntry()); }));
-  on('actBtn','click',()=>{ mode==='secret'?submitSecret():submitGuess(); });
-  on('toSecret','click',()=>{ mode='secret'; entry=''; err=''; render(); });
-  on('copyBtn','click',async()=>{ try{ await navigator.clipboard.writeText(S.code); const b=document.getElementById('copyBtn'); b.textContent='Copied ✓'; setTimeout(()=>b.textContent='Copy game code',1400);}catch{} });
-  on('leaveBtn','click',leaveGame);
-  on('againBtn','click',newRound);
+  document.querySelectorAll('.key[data-act]').forEach(k=>k.addEventListener('click',()=>{k.dataset.act==='back'?back():(entry='',renderEntry());}));
+  on('actBtn','click',()=>{mode==='secret'?submitSecret():submitGuess();});
+  on('changeBtn','click',()=>{editSecret=true;entry='';err='';render();});
+  on('cancelEdit','click',()=>{editSecret=false;entry='';render();});
+  on('copyBtn','click',async()=>{try{await navigator.clipboard.writeText(S.code);const b=document.getElementById('copyBtn');b.textContent='Copied ✓';setTimeout(()=>b.textContent='Copy game code',1400);}catch(e){}});
+  on('leaveBtn','click',leaveGame); on('againBtn','click',leaveGame);
 }
-
-// hardware keyboard support (desktop testing / bluetooth keyboards)
 window.addEventListener('keydown',e=>{
   if(!document.getElementById('slots')) return;
   if(/^[0-9]$/.test(e.key)) press(e.key);
   else if(e.key==='Backspace') back();
-  else if(e.key==='Enter'){ const a=document.getElementById('actBtn'); if(a&&!a.disabled) a.click(); }
+  else if(e.key==='Enter'){const a=document.getElementById('actBtn'); if(a&&!a.disabled) a.click();}
 });
-
-// ---------- boot ----------
-(async function init(){
-  render();
-  if(code){ mode=null; await refresh(true); if(code) startPoll(); }
-})();
+(async function init(){ render(); if(code){mode=null; await refresh(true); if(code) startPoll();} })();
 </script>
 </body>
 </html>
