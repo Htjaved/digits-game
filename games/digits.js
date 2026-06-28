@@ -149,7 +149,7 @@ const P=()=>S?.players||[];
 const teamOf=t=>P().filter(p=>p.team===t);
 const oppT=()=>S.my_team===1?2:1;
 const nameOfSlot=s=>(P().find(p=>p.slot===s)||{}).name||'someone';
-const isTeam=()=>S.team_size>1;
+const isTeam=()=>!!S && S.team_size>1;
 const teamTitle=t=>isTeam()?('Team '+t):(t===S.my_team?'You':(teamOf(t)[0]?.name||'Opponent'));
 const vsLabel=()=>isTeam()?('Team '+oppT()):(teamOf(oppT())[0]?.name||'your opponent');
 const secretSet=t=>!!(S.secrets&&S.secrets[String(t)]);
@@ -414,16 +414,21 @@ function viewBotPlay(){
   const botGuesses=BOT.guesses.filter(g=>g.by==='bot');
   const diffLabel={easy:'Easy',normal:'Normal',hard:'Hard'}[BOT.difficulty];
   const last=BOT.lastBotGuess;
-  const flash=(!myTurn===false && last) ? `<div class="card" style="padding:13px 16px;margin-bottom:14px"><div style="display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap">
+  // Show a summary of the bot's most recent guess against you, just above the keypad,
+  // for the turn right after it made that guess.
+  const flash=(myTurn && last) ? `<div class="card" style="padding:13px 16px;margin-bottom:14px">
+      <p class="lede" style="margin:0 0 8px;text-align:center">The bot just guessed:</p>
+      <div style="display:flex;align-items:center;gap:10px;justify-content:center;flex-wrap:wrap">
       <span class="gdigits" style="flex:none">${sp(last.guess)}</span>
       <span class="pill place">◉ ${last.right_place} in place</span>
       <span class="pill corr">◆ ${last.correct} correct</span></div></div>` : '';
   return `${err?`<div class="err">${esc(err)}</div>`:''}
   <div class="mynum"><span>Your number</span><b>${sp(BOT.mySecret)}</b></div>
   <div class="turn ${myTurn?'you':'them'}"><span class="dot"></span>${myTurn?`Your turn — guess the bot's number (${diffLabel})`:`Bot (${diffLabel}) is thinking…`}</div>
+  ${flash}
   ${myTurn?`<div class="card">
     <div class="slots" id="slots"></div>${keypad()}<div style="height:14px"></div>
-    <button class="btn" id="actBtn" disabled>Submit guess</button></div>`:flash}
+    <button class="btn" id="actBtn" disabled>Submit guess</button></div>`:''}
   <div class="grow"></div>
   ${receipt(`You · guessing bot`, myGuesses.length, rows(myGuesses,BOT.digits))}
   <div style="height:14px"></div>
