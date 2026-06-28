@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#FBF7EF" />
+<title>Digits — table game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,500;1,9..144,600&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#FBF7EF; --card:#FFFFFF; --ink:#211C17; --muted:#8C8377;
+    --line:#EAE1D2; --tomato:#E2563B; --tomato-d:#C7472E;
+    --green:#1F7A4D; --green-bg:#E7F2EB; --amber:#B4640F; --amber-bg:#F7ECDB;
+    --shadow:0 1px 0 rgba(33,28,23,.04), 0 12px 30px -18px rgba(33,28,23,.35);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:Inter,system-ui,sans-serif; color:var(--ink);
+    background:var(--paper);
+    background-image:radial-gradient(rgba(33,28,23,.035) 1px, transparent 1.4px);
+    background-size:18px 18px;
+    min-height:100dvh; -webkit-font-smoothing:antialiased;
+    padding:max(16px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom));
+    display:flex; justify-content:center;
+  }
+  .wrap{width:100%; max-width:430px; margin:0 auto}
+  .top{display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:6px 2px 18px}
+  .brand{display:flex; flex-direction:column; line-height:1}
+  .eyebrow{font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--tomato); font-weight:700}
+  .brand h1{font-family:Fraunces,serif; font-style:italic; font-weight:600; font-size:34px; margin:6px 0 0; letter-spacing:-.01em}
+  .codechip{font-family:'Space Mono',monospace; font-size:13px; font-weight:700; letter-spacing:.18em;
+    background:var(--ink); color:#fff; padding:7px 10px; border-radius:8px; white-space:nowrap}
+  .codechip small{display:block; font-family:Inter; font-weight:600; font-size:9px; letter-spacing:.16em; opacity:.6; margin-bottom:2px}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow); padding:20px}
+  .card + .card{margin-top:14px}
+  .lede{color:var(--muted); font-size:14.5px; line-height:1.5; margin:0 0 16px}
+  .lede b{color:var(--ink); font-weight:600}
+
+  label.fld{display:block; font-size:12px; font-weight:600; letter-spacing:.04em; color:var(--muted); text-transform:uppercase; margin:0 0 7px}
+  input.text{width:100%; font-family:Inter; font-size:17px; padding:13px 14px; border:1.5px solid var(--line);
+    border-radius:11px; background:#FCFAF5; color:var(--ink); outline:none}
+  input.text:focus{border-color:var(--tomato)}
+  input.code{font-family:'Space Mono',monospace; letter-spacing:.34em; text-transform:uppercase; font-weight:700; text-align:center}
+
+  .seg{display:flex; gap:8px; background:#F2ECDF; padding:5px; border-radius:12px}
+  .seg button{flex:1; border:0; background:transparent; font-family:Inter; font-weight:600; font-size:15px; color:var(--muted);
+    padding:11px 0; border-radius:8px; cursor:pointer}
+  .seg button[aria-pressed="true"]{background:#fff; color:var(--ink); box-shadow:0 1px 4px rgba(33,28,23,.12)}
+
+  .btn{width:100%; border:0; cursor:pointer; font-family:Inter; font-weight:700; font-size:16.5px; padding:15px;
+    border-radius:12px; background:var(--tomato); color:#fff; letter-spacing:.01em; transition:transform .04s, background .15s}
+  .btn:active{transform:translateY(1px); background:var(--tomato-d)}
+  .btn[disabled]{background:#E7DDCD; color:#B3A892; cursor:default; transform:none}
+  .btn.ghost{background:transparent; color:var(--ink); border:1.5px solid var(--line)}
+  .btn.ghost:active{background:#F7F2E9}
+  .row{display:flex; gap:10px}
+  .row > *{flex:1}
+
+  .divider{display:flex; align-items:center; gap:12px; color:var(--muted); font-size:12px; letter-spacing:.16em; text-transform:uppercase; margin:18px 2px}
+  .divider::before,.divider::after{content:""; height:1px; background:var(--line); flex:1}
+
+  /* big shareable code */
+  .bigcode{font-family:'Space Mono',monospace; font-weight:700; font-size:44px; letter-spacing:.2em;
+    text-align:center; padding:14px 0 4px; color:var(--ink)}
+  .copybtn{display:block; margin:2px auto 0; border:0; background:transparent; color:var(--tomato); font-weight:600; font-size:13px; cursor:pointer; padding:6px}
+
+  /* slots */
+  .slots{display:flex; gap:10px; justify-content:center; margin:6px 0 18px}
+  .slot{width:46px; height:60px; border-radius:11px; border:1.5px solid var(--line); background:#FCFAF5;
+    display:flex; align-items:center; justify-content:center; font-family:'Space Mono',monospace; font-size:30px; font-weight:700; color:var(--ink)}
+  .slot.on{border-color:var(--ink)}
+  .slot .cur{width:2px; height:26px; background:var(--tomato); border-radius:2px; animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .secret .slot{font-size:0}
+  .secret .slot.filled::after{content:"●"; font-size:18px; color:var(--ink)}
+
+  /* keypad */
+  .pad{display:grid; grid-template-columns:repeat(3,1fr); gap:9px; margin-top:4px}
+  .key{height:58px; border:1.5px solid var(--line); background:#fff; border-radius:13px; font-family:'Space Mono',monospace;
+    font-size:24px; font-weight:700; color:var(--ink); cursor:pointer; transition:transform .04s, background .1s}
+  .key:active{transform:translateY(1px); background:#F4EEE3}
+  .key.util{font-family:Inter; font-size:15px; font-weight:700; color:var(--muted)}
+
+  /* turn banner */
+  .turn{display:flex; align-items:center; gap:10px; padding:13px 15px; border-radius:13px; margin-bottom:14px; font-weight:600; font-size:15px}
+  .turn.you{background:var(--tomato); color:#fff}
+  .turn.them{background:#F2ECDF; color:var(--ink)}
+  .turn .dot{width:9px; height:9px; border-radius:50%; background:currentColor; box-shadow:0 0 0 0 currentColor; animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}70%{box-shadow:0 0 0 7px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+
+  /* receipt record */
+  .receipt{position:relative; background:#fff; border:1px solid var(--line); border-radius:0 0 12px 12px; padding:4px 14px 12px;
+    box-shadow:var(--shadow)}
+  .receipt::before{content:""; position:absolute; left:0; right:0; top:-7px; height:8px;
+    background:radial-gradient(circle at 6px 8px, transparent 5.5px, #fff 6px) repeat-x; background-size:12px 8px;
+    filter:drop-shadow(0 -1px 0 var(--line))}
+  .rhead{display:flex; justify-content:space-between; align-items:center; padding:12px 0 8px; border-bottom:1px dashed var(--line)}
+  .rhead .who{font-weight:700; font-size:13px; letter-spacing:.02em}
+  .rhead .cnt{font-family:'Space Mono',monospace; font-size:12px; color:var(--muted)}
+  .grow{display:block; margin-top:10px}
+  .empty{color:var(--muted); font-size:13.5px; text-align:center; padding:16px 4px; font-style:italic}
+  .gline{display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dotted #EFE7D8}
+  .gline:last-child{border-bottom:0}
+  .gnum{font-family:'Space Mono',monospace; font-size:11px; color:#B6AB99; width:20px; flex:none}
+  .gdigits{font-family:'Space Mono',monospace; font-size:19px; font-weight:700; letter-spacing:.12em; flex:1}
+  .pill{display:inline-flex; align-items:center; gap:4px; font-family:'Space Mono',monospace; font-weight:700;
+    font-size:12.5px; padding:4px 8px; border-radius:7px; white-space:nowrap}
+  .pill.place{background:var(--green-bg); color:var(--green)}
+  .pill.corr{background:var(--amber-bg); color:var(--amber)}
+  .win{color:var(--tomato)} .winrow{background:#FCEEEA}
+  .legend{display:flex; gap:16px; justify-content:center; flex-wrap:wrap; color:var(--muted); font-size:11.5px; margin:14px 2px 2px}
+  .legend span{display:inline-flex; align-items:center; gap:5px}
+  .swatch{width:9px; height:9px; border-radius:3px; display:inline-block}
+
+  .result{display:flex; flex-direction:column; align-items:center; text-align:center; padding:6px 0}
+  .result h2{font-family:Fraunces,serif; font-style:italic; font-weight:600; font-size:30px; margin:4px 0 6px}
+  .reveal{display:flex; gap:20px; justify-content:center; margin:14px 0 4px}
+  .reveal div{display:flex; flex-direction:column; gap:5px}
+  .reveal .lbl{font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+  .reveal .num{font-family:'Space Mono',monospace; font-size:24px; font-weight:700; letter-spacing:.1em}
+
+  .err{background:#FCEAE5; color:var(--tomato-d); border:1px solid #F3CFC6; padding:10px 13px; border-radius:10px; font-size:13.5px; font-weight:500; margin-bottom:12px}
+  .foot{text-align:center; color:#B6AB99; font-size:11px; margin:20px 0 4px; letter-spacing:.04em}
+  .linkbtn{background:none; border:0; color:var(--muted); text-decoration:underline; cursor:pointer; font-size:12.5px; padding:8px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">
+        <span class="eyebrow">Table game</span>
+        <h1>Digits</h1>
+      </div>
+      <div id="codeChip"></div>
+    </div>
+    <div id="app"></div>
+    <div class="foot" id="foot">Pick a number · trade guesses · crack the code</div>
+  </div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SB_URL = 'https://iwwodozxqsgbaghndncs.supabase.co';
+const SB_KEY = 'sb_publishable_dMtLijCoMrB4S7b6esp4oQ_ICgLZX0x';
+const sb = createClient(SB_URL, SB_KEY);
+
+// ---- persistent device identity ----
+function uid(){ return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)); }
+let token = localStorage.getItem('ngg_token'); if(!token){ token = uid(); localStorage.setItem('ngg_token', token); }
+let name  = localStorage.getItem('ngg_name') || '';
+let code  = localStorage.getItem('ngg_code') || '';
+
+// ---- ui state ----
+let S = null;              // latest server state
+let entry = '';            // current keypad entry
+let mode = null;           // 'secret' | 'guess'
+let newDigits = 4;         // for create screen
+let err = '';
+let poll = null;
+let lastSig = '';
+let lastResult = null;     // {correct,right_place} flash after a guess
+
+const app = document.getElementById('app');
+const chip = document.getElementById('codeChip');
+const esc = s => (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+async function rpc(fn, args){
+  const { data, error } = await sb.rpc(fn, args);
+  if(error) throw new Error((error.message||'').replace(/^.*?:\s*/, '') || 'error');
+  return data;
+}
+const FRIENDLY = {
+  GAME_NOT_FOUND:'No game with that code. Check it and try again.',
+  GAME_FULL:'That game already has two players.',
+  NOT_YOUR_TURN:'Hold on — it’s your partner’s turn.',
+  NOT_PLAYING:'The game isn’t ready yet.',
+  BAD_GUESS:'Enter all the digits first.',
+  BAD_SECRET:'Enter all the digits first.',
+  NOT_A_PLAYER:'You’re not in this game anymore.',
+};
+const friendly = m => FRIENDLY[m] || m || 'Something went wrong.';
+
+// ---------- actions ----------
+async function createGame(){
+  err=''; const nm = (document.getElementById('nameIn')?.value||'').trim();
+  if(nm){ name=nm; localStorage.setItem('ngg_name',nm); }
+  try{
+    code = await rpc('ngg_create_game', { p_digits:newDigits, p_name:name, p_token:token });
+    localStorage.setItem('ngg_code', code);
+    entry=''; mode='secret';
+    await refresh(true); startPoll();
+  }catch(e){ err=friendly(e.message); render(); }
+}
+async function joinGame(){
+  err=''; const nm=(document.getElementById('nameIn')?.value||'').trim();
+  const cd=(document.getElementById('codeIn')?.value||'').trim().toUpperCase();
+  if(nm){ name=nm; localStorage.setItem('ngg_name',nm); }
+  if(cd.length<4){ err='Enter the 4-letter game code.'; return render(); }
+  try{
+    await rpc('ngg_join_game', { p_code:cd, p_name:name, p_token:token });
+    code=cd; localStorage.setItem('ngg_code',cd);
+    entry=''; mode='secret';
+    await refresh(true); startPoll();
+  }catch(e){ err=friendly(e.message); render(); }
+}
+async function submitSecret(){
+  err='';
+  if(entry.length!==S.digits){ err='Enter all '+S.digits+' digits.'; return render(); }
+  try{ await rpc('ngg_set_secret', { p_code:code, p_token:token, p_secret:entry }); entry=''; mode=null; await refresh(true); }
+  catch(e){ err=friendly(e.message); render(); }
+}
+async function submitGuess(){
+  err='';
+  if(entry.length!==S.digits){ err='Enter all '+S.digits+' digits.'; return render(); }
+  const g=entry;
+  try{
+    const r = await rpc('ngg_make_guess', { p_code:code, p_token:token, p_guess:g });
+    entry=''; lastResult={...r, guess:g}; await refresh(true);
+  }catch(e){ err=friendly(e.message); render(); }
+}
+function leaveGame(){
+  if(poll) clearInterval(poll), poll=null;
+  code=''; S=null; entry=''; mode=null; err=''; lastResult=null; lastSig='';
+  localStorage.removeItem('ngg_code'); render();
+}
+function newRound(){ leaveGame(); }
+
+// ---------- polling ----------
+function startPoll(){ if(poll) clearInterval(poll); poll=setInterval(()=>refresh(false), 1500); }
+async function refresh(force){
+  if(!code) return;
+  try{
+    const data = await rpc('ngg_state', { p_code:code, p_token:token });
+    S = data;
+    const sig = [S.status,S.turn,S.winner,(S.guesses||[]).length, (S.players||[]).map(p=>p.has_secret).join('')].join('|');
+    if(force || sig!==lastSig){ lastSig=sig; render(); }
+    if(S.status==='finished' && poll){ clearInterval(poll); poll=null; }
+  }catch(e){
+    if(/GAME_NOT_FOUND/.test(e.message)){ leaveGame(); }
+  }
+}
+
+// ---------- keypad ----------
+function press(d){ const max=S?.digits||5; if(entry.length<max){ entry+=d; renderEntry(); } }
+function back(){ entry=entry.slice(0,-1); renderEntry(); }
+function renderEntry(){
+  const box=document.getElementById('slots'); if(!box) return;
+  const max=S?.digits||5; const secret = mode==='secret';
+  let h=''; for(let i=0;i<max;i++){ const f=i<entry.length;
+    h+=`<div class="slot ${f?'on filled':''}">${secret? '' : (f?esc(entry[i]):(i===entry.length?'<span class=cur></span>':''))}</div>`; }
+  box.innerHTML=h;
+  const act=document.getElementById('actBtn'); if(act) act.disabled = entry.length!==max;
+}
+function keypad(){
+  return `<div class="pad">
+    ${[1,2,3,4,5,6,7,8,9].map(n=>`<button class="key" data-k="${n}">${n}</button>`).join('')}
+    <button class="key util" data-act="back">⌫</button>
+    <button class="key" data-k="0">0</button>
+    <button class="key util" data-act="clear">clear</button>
+  </div>`;
+}
+
+// ---------- name helpers ----------
+function partnerName(){ const me=S?.my_slot; const p=(S?.players||[]).find(x=>x.slot!==me); return p?.name || 'your partner'; }
+function meName(){ const me=S?.my_slot; const p=(S?.players||[]).find(x=>x.slot===me); return p?.name || 'You'; }
+
+// ---------- record rendering ----------
+function recordRows(list, digits){
+  if(!list.length) return `<div class="empty">No guesses yet.</div>`;
+  return list.map((g,i)=>{
+    const win=g.right_place===digits;
+    return `<div class="gline ${win?'winrow':''}">
+      <span class="gnum">${i+1}</span>
+      <span class="gdigits ${win?'win':''}">${g.guess.split('').join(' ')}</span>
+      <span class="pill place">◉ ${g.right_place}</span>
+      <span class="pill corr">◆ ${g.correct}</span>
+    </div>`;
+  }).join('');
+}
+function receipt(title, count, rowsHtml){
+  return `<div class="receipt">
+    <div class="rhead"><span class="who">${esc(title)}</span><span class="cnt">${count} ${count===1?'guess':'guesses'}</span></div>
+    ${rowsHtml}
+  </div>`;
+}
+const legend = `<div class="legend">
+  <span><span class="swatch" style="background:var(--green)"></span>◉ right digit, right spot</span>
+  <span><span class="swatch" style="background:var(--amber)"></span>◆ right digit (total correct)</span>
+</div>`;
+
+// ---------- screens ----------
+function viewHome(){
+  return `
+  ${err?`<div class="err">${esc(err)}</div>`:''}
+  <div class="card">
+    <p class="lede">A quick code-cracking game for two phones. You each pick a secret number, then take turns guessing — your partner tells you how close you are.</p>
+    <label class="fld" for="nameIn">Your name</label>
+    <input class="text" id="nameIn" maxlength="16" placeholder="e.g. ${esc(name||'Nihal')}" value="${esc(name)}" />
+    <div style="height:18px"></div>
+    <label class="fld">Secret number length</label>
+    <div class="seg" id="seg">
+      <button data-d="4" aria-pressed="${newDigits===4}">4 digits</button>
+      <button data-d="5" aria-pressed="${newDigits===5}">5 digits</button>
+    </div>
+    <div style="height:16px"></div>
+    <button class="btn" id="createBtn">Start a new game</button>
+    <div class="divider">or</div>
+    <label class="fld" for="codeIn">Join with a code</label>
+    <div class="row">
+      <input class="text code" id="codeIn" maxlength="4" placeholder="CODE" autocapitalize="characters" />
+      <button class="btn ghost" id="joinBtn" style="flex:0 0 96px">Join</button>
+    </div>
+  </div>`;
+}
+function viewSecret(){
+  const waitJoin = S.status==='waiting';
+  return `
+  ${err?`<div class="err">${esc(err)}</div>`:''}
+  <div class="card secret">
+    <p class="lede">Pick your secret <b>${S.digits}-digit number</b>. Keep it hidden from ${esc(partnerName())}! Repeats and a leading zero are fine.</p>
+    <div class="slots" id="slots"></div>
+    ${keypad()}
+    <div style="height:14px"></div>
+    <button class="btn" id="actBtn" disabled>Lock in my number</button>
+  </div>
+  ${waitJoin?`<div class="card"><p class="lede" style="margin:0">Share the code up top with ${esc(partnerName())} so they can join on their phone.</p></div>`:''}`;
+}
+function viewWait(){
+  const me=S.my_slot;
+  const meSet=(S.players.find(p=>p.slot===me)||{}).has_secret;
+  const them=S.players.find(p=>p.slot!==me);
+  let msg;
+  if(S.status==='waiting'||!them){ msg=`Waiting for ${esc(partnerName())} to join. Share the code above.`; }
+  else if(!them.has_secret){ msg=`${esc(them.name)} is choosing their secret number…`; }
+  else { msg='Getting things ready…'; }
+  return `
+  <div class="card">
+    <div class="bigcode">${esc(S.code)}</div>
+    <button class="copybtn" id="copyBtn">Copy game code</button>
+    <div class="divider">status</div>
+    <div class="turn them"><span class="dot"></span>${msg}</div>
+    ${meSet?`<p class="lede" style="margin:10px 0 0; text-align:center">Your number is locked in. ✓</p>`
+            :`<button class="btn" id="toSecret">Set my secret number</button>`}
+    <button class="linkbtn" id="leaveBtn" style="display:block;margin:14px auto 0">Leave game</button>
+  </div>`;
+}
+function viewPlay(){
+  const me=S.my_slot;
+  const yours = (S.guesses||[]).filter(g=>g.guesser===me);      // my guesses vs partner's number
+  const theirs= (S.guesses||[]).filter(g=>g.guesser!==me);      // partner's guesses vs my number
+  const myTurn = S.turn===me;
+  const flash = lastResult ? `<div class="card" style="padding:14px 18px"><div style="display:flex;align-items:center;gap:10px;justify-content:center">
+      <span class="gdigits" style="flex:none">${lastResult.guess.split('').join(' ')}</span>
+      <span class="pill place">◉ ${lastResult.right_place} in place</span>
+      <span class="pill corr">◆ ${lastResult.correct} correct</span></div></div>` : '';
+  return `
+  ${err?`<div class="err">${esc(err)}</div>`:''}
+  <div class="turn ${myTurn?'you':'them'}"><span class="dot"></span>
+    ${myTurn? `Your turn — guess ${esc(partnerName())}’s number` : `Waiting for ${esc(partnerName())} to guess…`}</div>
+
+  ${myTurn?`<div class="card">
+    <div class="slots" id="slots"></div>
+    ${keypad()}
+    <div style="height:14px"></div>
+    <button class="btn" id="actBtn" disabled>Submit guess</button>
+  </div>`: flash}
+
+  <div class="grow"></div>
+  ${receipt(`Your guesses · ${esc(partnerName())}’s number`, yours.length, recordRows(yours, S.digits))}
+  <div style="height:14px"></div>
+  ${receipt(`${esc(partnerName())}’s guesses · your number`, theirs.length, recordRows(theirs, S.digits))}
+  ${legend}
+  <button class="linkbtn" id="leaveBtn" style="display:block;margin:12px auto 0">Leave game</button>`;
+}
+function viewDone(){
+  const me=S.my_slot;
+  const iWon = S.winner===me;
+  const yours=(S.guesses||[]).filter(g=>g.guesser===me);
+  const theirs=(S.guesses||[]).filter(g=>g.guesser!==me);
+  const rev=S.reveal||{};
+  const mySecret = rev[String(me)] ?? '—';
+  const opp = me===1?2:1; const theirSecret = rev[String(opp)] ?? '—';
+  return `
+  <div class="card">
+    <div class="result">
+      <span class="eyebrow" style="color:${iWon?'var(--green)':'var(--muted)'}">${iWon?'You cracked it':'Game over'}</span>
+      <h2>${iWon?'You win! 🎉':`${esc(partnerName())} wins`}</h2>
+      <p class="lede" style="margin:2px 0 0">${iWon? `You guessed ${esc(partnerName())}’s number in ${yours.length} ${yours.length===1?'try':'tries'}.` : `${esc(partnerName())} cracked your number first.`}</p>
+      <div class="reveal">
+        <div><span class="lbl">Your number</span><span class="num">${esc(mySecret.split('').join(' '))}</span></div>
+        <div><span class="lbl">${esc(partnerName())}’s</span><span class="num">${esc(theirSecret.split('').join(' '))}</span></div>
+      </div>
+    </div>
+    <button class="btn" id="againBtn">Play again</button>
+  </div>
+  <div class="grow"></div>
+  ${receipt(`Your guesses`, yours.length, recordRows(yours, S.digits))}
+  <div style="height:14px"></div>
+  ${receipt(`${esc(partnerName())}’s guesses`, theirs.length, recordRows(theirs, S.digits))}
+  ${legend}`;
+}
+
+// ---------- render + wiring ----------
+function render(){
+  // code chip
+  chip.innerHTML = (S && code && S.status!=='finished') ? `<div class="codechip"><small>CODE</small>${esc(S.code)}</div>` : '';
+  let html;
+  if(!code || !S){ html=viewHome(); }
+  else if(S.status==='finished'){ html=viewDone(); }
+  else {
+    const me=S.my_slot;
+    const meSet=(S.players.find(p=>p.slot===me)||{}).has_secret;
+    if(S.status==='playing'){ html=viewPlay(); }
+    else if(mode==='secret' && !meSet){ html=viewSecret(); }
+    else { html=viewWait(); }
+  }
+  app.innerHTML=html;
+  wire();
+  if(document.getElementById('slots')) renderEntry();
+}
+function wire(){
+  const on=(id,ev,fn)=>{ const el=document.getElementById(id); if(el) el.addEventListener(ev,fn); };
+  on('createBtn','click',createGame);
+  on('joinBtn','click',joinGame);
+  document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{ newDigits=+b.dataset.d; render(); }));
+  const ci=document.getElementById('codeIn'); if(ci) ci.addEventListener('keydown',e=>{ if(e.key==='Enter') joinGame(); });
+  // keypad
+  document.querySelectorAll('.key[data-k]').forEach(k=>k.addEventListener('click',()=>press(k.dataset.k)));
+  document.querySelectorAll('.key[data-act]').forEach(k=>k.addEventListener('click',()=>{ k.dataset.act==='back'?back():(entry='',renderEntry()); }));
+  on('actBtn','click',()=>{ mode==='secret'?submitSecret():submitGuess(); });
+  on('toSecret','click',()=>{ mode='secret'; entry=''; err=''; render(); });
+  on('copyBtn','click',async()=>{ try{ await navigator.clipboard.writeText(S.code); const b=document.getElementById('copyBtn'); b.textContent='Copied ✓'; setTimeout(()=>b.textContent='Copy game code',1400);}catch{} });
+  on('leaveBtn','click',leaveGame);
+  on('againBtn','click',newRound);
+}
+
+// hardware keyboard support (desktop testing / bluetooth keyboards)
+window.addEventListener('keydown',e=>{
+  if(!document.getElementById('slots')) return;
+  if(/^[0-9]$/.test(e.key)) press(e.key);
+  else if(e.key==='Backspace') back();
+  else if(e.key==='Enter'){ const a=document.getElementById('actBtn'); if(a&&!a.disabled) a.click(); }
+});
+
+// ---------- boot ----------
+(async function init(){
+  render();
+  if(code){ mode=null; await refresh(true); if(code) startPoll(); }
+})();
+</script>
+</body>
+</html>
