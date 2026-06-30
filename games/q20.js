@@ -11,6 +11,8 @@ let code='';
 let app, chip, exitToMenu;
 let S=null, err='', poll=null, lastSig='';
 let secretEntry='', questionEntry='', guessEntry='', actionTab='question'; // 'question' | 'guess'
+let replyEntry='';
+let logTab='all'; // 'all' | 'mine' | 'theirs'
 
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -20,7 +22,9 @@ const FR={GAME_NOT_FOUND:'No game with that code. Check it and try again.',GAME_
   BAD_SECRET:'Type something for your secret (1–60 characters).',LOCKED:'The game already started.',
   NOT_A_PLAYER:'You’re not in this game anymore.',BAD_QUESTION:'Type a question first.',
   QUESTION_PENDING:'Answer the pending question first.',NO_PENDING_QUESTION:'There’s no question to answer.',
-  BAD_ANSWER:'Pick yes, no, or maybe.',BAD_GUESS:'Type a guess first.'};
+  BAD_ANSWER:'Pick yes, no, or maybe.',BAD_GUESS:'Type a guess first.',
+  NO_PENDING_GUESS:'That guess isn’t waiting on a judgment.',ALREADY_REPLIED:'You already judged that guess.',
+  BAD_REPLY:'Keep the reply under 200 characters.'};
 const fr=m=>FR[m]||m||'Something went wrong.';
 
 function P(){ return S?.players||[]; }
@@ -64,6 +68,12 @@ async function makeGuess(){
   const g=guessEntry.trim();
   if(!g){err='Type a guess first.';return render();}
   try{ await rpc('q20_guess',{p_code:code,p_token:token,p_guess:g}); guessEntry=''; await refresh(true); }
+  catch(e){err=fr(e.message);render();}
+}
+async function judgeGuess(eventId, correct){
+  err='';
+  const reply = replyEntry.trim();
+  try{ await rpc('q20_reply_guess',{p_code:code,p_token:token,p_event_id:eventId,p_correct:correct,p_reply:reply||null}); replyEntry=''; await refresh(true); }
   catch(e){err=fr(e.message);render();}
 }
 function leaveGame(){ if(poll){clearInterval(poll);poll=null;} code='';S=null;err='';lastSig=''; exitToMenu(); }
@@ -121,13 +131,32 @@ function viewSecretEntry(){
 }
 function viewPlay(){
   const myTurn = S.turn===S.my_slot;
+  const pendingJudge = S.turn===0; // someone guessed; awaiting the secret-holder's manual judgment
   const pq = pendingQ();
   const amAnswering = pq && !myTurn;
   const events = S.events||[];
   const log = events.filter(e=>e.kind==='question'||e.kind==='answer'||e.kind==='guess_word');
 
+  // Find the guess awaiting judgment (most recent unreplied guess_word event), and whether
+  // I'm the one who must judge it (I'm not the guesser).
+  const pendingGuessEv = pendingJudge ? events.slice().reverse().find(e=>e.kind==='guess_word' && !e.payload.replied) : null;
+  const iAmJudge = pendingGuessEv && pendingGuessEv.slot !== S.my_slot;
+
   let actionBlock = '';
-  if(amAnswering){
+  if(pendingGuessEv && iAmJudge){
+    actionBlock = `<div class="card">
+      <p class="lede" style="margin-bottom:10px"><b>${esc(opp()?.name||'They')} guessed:</b><br>"${esc(pendingGuessEv.payload.text)}"</p>
+      <p class="lede" style="margin-bottom:8px">Were they right?</p>
+      <input class="text" id="replyIn" maxlength="200" placeholder="Optional reply, e.g. \u201cSo close!\u201d" autocomplete="off" />
+      <div style="height:10px"></div>
+      <div class="row" style="gap:8px">
+        <button class="btn" id="judgeCorrect" style="background:var(--green)">Correct</button>
+        <button class="btn ghost" id="judgeWrong">Not quite</button>
+      </div>
+    </div>`;
+  } else if(pendingGuessEv){
+    actionBlock = `<div class="card"><p class="lede" style="margin:0">Waiting for ${esc(opp()?.name||'them')} to judge your guess…</p></div>`;
+  } else if(amAnswering){
     actionBlock = `<div class="card">
       <p class="lede" style="margin-bottom:10px"><b>${esc(opp()?.name||'They')} asked:</b><br>"${esc(pq)}"</p>
       <div class="row" style="gap:8px">
@@ -150,7 +179,7 @@ function viewPlay(){
         <div style="height:12px"></div>
         <button class="btn" id="askBtn">Ask</button>
       ` : `
-        <p class="lede" style="margin-bottom:8px">Free guess — no penalty if you're wrong, but it still uses your turn.</p>
+        <p class="lede" style="margin-bottom:8px">Free guess — your opponent decides if you got it. No penalty if you're wrong, but it still uses your turn.</p>
         <input class="text" id="gIn" maxlength="80" placeholder="Your guess…" autocomplete="off" />
         <div style="height:12px"></div>
         <button class="btn" id="guessBtn">Submit guess</button>
@@ -160,20 +189,36 @@ function viewPlay(){
     actionBlock = `<div class="card"><p class="lede" style="margin:0">Waiting for ${esc(opp()?.name||'opponent')}'s turn…</p></div>`;
   }
 
-  const logHtml = log.length ? log.slice().reverse().map(e=>{
+  const renderLine = e=>{
     const isMe = e.slot===S.my_slot;
     const who = isMe ? 'You' : (opp()?.name||'Them');
     if(e.kind==='question') return `<div class="gline"><span class="gdigits" style="font-size:14px;font-family:Inter;font-weight:600">${esc(who)} asked: <span style="font-weight:400">${esc(e.payload.text)}</span></span></div>`;
     if(e.kind==='answer') return `<div class="gline"><span class="gdigits" style="font-size:14px;font-family:Inter;font-weight:600">${esc(who)} answered: <span class="pill ${e.payload.text==='yes'?'place':e.payload.text==='no'?'corr':''}" style="text-transform:capitalize">${esc(e.payload.text)}</span></span></div>`;
-    if(e.kind==='guess_word') return `<div class="gline ${e.payload.correct?'winrow':''}"><span class="gdigits" style="font-size:14px;font-family:Inter;font-weight:600">${esc(who)} guessed: <span style="font-weight:400">${esc(e.payload.text)}</span> ${e.payload.correct?'✅':'❌'}</span></div>`;
+    if(e.kind==='guess_word'){
+      if(!e.payload.replied) return `<div class="gline"><span class="gdigits" style="font-size:14px;font-family:Inter;font-weight:600">${esc(who)} guessed: <span style="font-weight:400">${esc(e.payload.text)}</span> <span class="tag">awaiting judgment</span></span></div>`;
+      const reply = e.payload.reply ? ` — <span style="font-weight:400;font-style:italic">${esc(e.payload.reply)}</span>` : '';
+      return `<div class="gline ${e.payload.correct?'winrow':''}"><span class="gdigits" style="font-size:14px;font-family:Inter;font-weight:600">${esc(who)} guessed: <span style="font-weight:400">${esc(e.payload.text)}</span> ${e.payload.correct?'✅':'❌'}${reply}</span></div>`;
+    }
     return '';
-  }).join('') : '<div class="empty">No questions yet — break the ice!</div>';
+  };
+
+  const filteredLog = log.filter(e => logTab==='all' ? true : logTab==='mine' ? e.slot===S.my_slot : e.slot!==S.my_slot);
+  const logHtml = filteredLog.length ? filteredLog.slice().reverse().map(renderLine).join('')
+    : `<div class="empty">${logTab==='all'?'No questions yet — break the ice!':logTab==='mine'?'You haven\u2019t asked or guessed anything yet.':`${esc(opp()?.name||'They')} haven\u2019t asked or guessed anything yet.`}</div>`;
 
   return `${err?`<div class="err">${esc(err)}</div>`:''}
-  <div class="turn ${myTurn?'you':'them'}"><span class="dot"></span>${amAnswering?`${esc(opp()?.name||'They')} is waiting on your answer`:myTurn?`Your turn`:`${esc(opp()?.name||'Opponent')}'s turn`}</div>
+  <div class="turn ${myTurn?'you':'them'}"><span class="dot"></span>${pendingGuessEv?(iAmJudge?`Judge ${esc(opp()?.name||'their')} guess`:`Waiting on ${esc(opp()?.name||'their')} judgment`):amAnswering?`${esc(opp()?.name||'They')} is waiting on your answer`:myTurn?`Your turn`:`${esc(opp()?.name||'Opponent')}'s turn`}</div>
   ${actionBlock}
   <div class="grow"></div>
-  <div class="receipt"><div class="rhead"><span class="who">Game log</span><span class="cnt">${log.length}</span></div>${logHtml}</div>
+  <div class="receipt">
+    <div class="rhead"><span class="who">Game log</span><span class="cnt">${filteredLog.length}</span></div>
+    <div class="seg" id="logTabs" style="margin-bottom:10px">
+      <button data-logtab="all" aria-pressed="${logTab==='all'}">All</button>
+      <button data-logtab="mine" aria-pressed="${logTab==='mine'}">Mine</button>
+      <button data-logtab="theirs" aria-pressed="${logTab==='theirs'}">${esc(opp()?.name||'Theirs')}</button>
+    </div>
+    ${logHtml}
+  </div>
   <button class="linkbtn" id="leaveBtn" style="display:block;margin:12px auto 0">End game</button>`;
 }
 function viewDone(){
@@ -215,6 +260,7 @@ function wire(){
   on('lockSecretBtn','click', ()=>{ secretEntry=document.getElementById('secretIn')?.value||''; submitSecret(); });
   const si=document.getElementById('secretIn'); if(si) si.addEventListener('keydown',e=>{if(e.key==='Enter'){secretEntry=si.value;submitSecret();}});
   document.querySelectorAll('#actionTabs button').forEach(b=>b.addEventListener('click',()=>{actionTab=b.dataset.tab;render();}));
+  document.querySelectorAll('#logTabs button').forEach(b=>b.addEventListener('click',()=>{logTab=b.dataset.logtab;render();}));
   on('askBtn','click', ()=>{ questionEntry=document.getElementById('qIn')?.value||''; askQuestion(); });
   const qi=document.getElementById('qIn'); if(qi) qi.addEventListener('keydown',e=>{if(e.key==='Enter'){questionEntry=qi.value;askQuestion();}});
   on('guessBtn','click', ()=>{ guessEntry=document.getElementById('gIn')?.value||''; makeGuess(); });
@@ -222,6 +268,10 @@ function wire(){
   on('ansYes','click', ()=>answerQuestion('yes'));
   on('ansNo','click', ()=>answerQuestion('no'));
   on('ansMaybe','click', ()=>answerQuestion('maybe'));
+  const ri=document.getElementById('replyIn'); if(ri) ri.addEventListener('keydown',e=>{if(e.key==='Enter') replyEntry=ri.value;});
+  const pendingGuessEv = (S?.events||[]).slice().reverse().find(e=>e.kind==='guess_word' && !e.payload.replied);
+  on('judgeCorrect','click', ()=>{ replyEntry=document.getElementById('replyIn')?.value||''; if(pendingGuessEv) judgeGuess(pendingGuessEv.id, true); });
+  on('judgeWrong','click', ()=>{ replyEntry=document.getElementById('replyIn')?.value||''; if(pendingGuessEv) judgeGuess(pendingGuessEv.id, false); });
   on('leaveBtn','click', leaveGame);
   on('againBtn','click', playAgain);
 }
@@ -229,6 +279,7 @@ function wire(){
 export async function initQ20(containerEl, chipEl, onExit){
   app=containerEl; chip=chipEl; exitToMenu=onExit;
   code=''; S=null; err=''; lastSig=''; secretEntry=''; questionEntry=''; guessEntry=''; actionTab='question';
+  replyEntry=''; logTab='all';
   render();
 }
 export function teardownQ20(){

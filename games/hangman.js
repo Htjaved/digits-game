@@ -73,17 +73,6 @@ async function refresh(force){
   }catch(e){ if(/GAME_NOT_FOUND/.test(e.message)) leaveGame(); }
 }
 
-function maskedWord(secretLen, guessedByMe, opponentWordRevealLetters){
-  // We never see the opponent's actual secret unless finished; we only know which of OUR guessed
-  // letters were hits, derived from events. Build mask using event history against opp slot.
-  return null; // not used directly; see renderMask()
-}
-
-function lettersGuessedAgainst(oppSlotNum){
-  // returns set of letters I (my_slot) have guessed against opponent, derived from my own guessed_letters list
-  const mePlayer = P().find(p=>p.slot===S.my_slot);
-  return mePlayer?.my_guessed_letters || [];
-}
 function hitLettersFromEvents(slot){
   // letters that 'slot' guessed which were hits (against the OTHER player's word)
   return (S.events||[]).filter(e=>e.kind==='guess_letter' && e.slot===slot && e.payload.hit).map(e=>e.payload.letter);
@@ -91,21 +80,36 @@ function hitLettersFromEvents(slot){
 function missLettersFromEvents(slot){
   return (S.events||[]).filter(e=>e.kind==='guess_letter' && e.slot===slot && !e.payload.hit).map(e=>e.payload.letter);
 }
-function wordLengthOf(slot){
-  // length isn't directly exposed pre-finish; infer from config? We don't store per-secret length separately.
-  // Simplify: show progressive reveal as "letters found so far" rather than blanks-with-fixed-length,
-  // since length isn't leaked by the backend (by design) until finish.
-  return null;
+
+function hangmanSvg(livesLost){
+  // 6 lives total -> 6 progressive parts: head, body, left arm, right arm, left leg, right leg
+  const n = Math.max(0, Math.min(6, livesLost));
+  const parts = [
+    `<circle cx="60" cy="38" r="10"/>`,                  // 1 head
+    `<line x1="60" y1="48" x2="60" y2="80"/>`,            // 2 body
+    `<line x1="60" y1="56" x2="46" y2="68"/>`,            // 3 left arm
+    `<line x1="60" y1="56" x2="74" y2="68"/>`,            // 4 right arm
+    `<line x1="60" y1="80" x2="48" y2="100"/>`,           // 5 left leg
+    `<line x1="60" y1="80" x2="72" y2="100"/>`,           // 6 right leg
+  ];
+  return `<svg viewBox="0 0 100 110" class="hangsvg" aria-hidden="true">
+    <line x1="6" y1="106" x2="50" y2="106"/>
+    <line x1="18" y1="106" x2="18" y2="6"/>
+    <line x1="18" y1="6" x2="60" y2="6"/>
+    <line x1="60" y1="6" x2="60" y2="18"/>
+    ${parts.slice(0,n).join('')}
+  </svg>`;
 }
 
-function renderProgress(oppSlotNum){
-  const hits = hitLettersFromEvents(S.my_slot).filter(l=>true);
-  // To show blanks correctly we DO need word length. Since backend intentionally doesn't leak it pre-reveal,
-  // show a running list of confirmed letters instead of blank slots. This keeps the secret length hidden too,
-  // which is actually a nice extra layer of mystery consistent with not leaking the secret.
-  const hitSet=[...new Set(hitLettersFromEvents(S.my_slot))];
-  if(!hitSet.length) return `<span class="msub">No letters found yet</span>`;
-  return `<span class="gdigits" style="font-size:22px">${hitSet.join(' ').toUpperCase()}</span>`;
+function renderProgress(){
+  // hm_mask comes from the backend: it's the opponent's word with unguessed letters as '_',
+  // in correct positional order — e.g. "c_t" for CAT once you've hit C and T but not A.
+  const mask = S.hm_mask || '';
+  if(!mask) return `<span class="msub">No letters found yet</span>`;
+  const cells = mask.split('').map(ch=>
+    ch==='_' ? `<span class="hmblank">_</span>` : `<span class="hmletter">${esc(ch.toUpperCase())}</span>`
+  ).join('');
+  return `<div class="hmword">${cells}</div>`;
 }
 
 function keyboardGrid(disabledLetters, onClickEnabled){
@@ -164,8 +168,8 @@ function viewPlay(){
   return `${err?`<div class="err">${esc(err)}</div>`:''}
   <div class="turn ${myTurn?'you':'them'}"><span class="dot"></span>${myTurn?`Your turn — guess a letter in ${esc(opp()?.name||'their')} word`:`Waiting for ${esc(opp()?.name||'opponent')}…`}</div>
   <div class="rosters" style="margin-bottom:14px">
-    <div class="teambox mine"><h4>You</h4><div class="lives">${'❤️'.repeat(Math.max(myLives,0))}${'🖤'.repeat(Math.max(6-myLives,0))}</div></div>
-    <div class="teambox"><h4>${esc(opp()?.name||'Opponent')}</h4><div class="lives">${'❤️'.repeat(Math.max(oppLives,0))}${'🖤'.repeat(Math.max(6-oppLives,0))}</div></div>
+    <div class="teambox mine"><h4>You</h4>${hangmanSvg(6-myLives)}<div class="liveslabel">${Math.max(myLives,0)} ${myLives===1?'life':'lives'} left</div></div>
+    <div class="teambox"><h4>${esc(opp()?.name||'Opponent')}</h4>${hangmanSvg(6-oppLives)}<div class="liveslabel">${Math.max(oppLives,0)} ${oppLives===1?'life':'lives'} left</div></div>
   </div>
   <div class="card">
     <p class="lede" style="margin-bottom:8px">Letters found in their word so far:</p>

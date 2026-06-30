@@ -142,5 +142,13 @@
   .kbkey:active{transform:translateY(1px); background:#F4EEE3}
   .kbkey:disabled{opacity:.25; cursor:default}
   .lives{font-size:15px; letter-spacing:1px; line-height:1.4}
+
+  .hangsvg{display:block; width:64px; height:70px; margin:0 auto; stroke:var(--ink); stroke-width:3.5; stroke-linecap:round; fill:none}
+  .teambox.mine .hangsvg{stroke:var(--tomato)}
+  .liveslabel{text-align:center; font-size:11px; color:var(--muted); margin-top:4px; font-weight:600}
+
+  .hmword{display:flex; flex-wrap:wrap; gap:7px; font-family:'Space Mono',monospace; font-size:22px; font-weight:700}
+  .hmletter{color:var(--ink)}
+  .hmblank{color:var(--line); min-width:.6em; text-align:center}
   .linkbtn{background:none; border:0; color:var(--muted); text-decoration:underline; cursor:pointer; font-size:12.5px; padding:8px}
   @media (prefers-reduced-motion:reduce){*{animation:none!important}}

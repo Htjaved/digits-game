@@ -31,6 +31,7 @@ const GAMES = [
   { id:'hangman', emoji:'🔤', title:'Hangman',         sub:'Guess letters, race to reveal', foot:'Pick a word · guess letters · don\u2019t run out of lives' },
   { id:'q20',     emoji:'❓', title:'20 Questions',    sub:'Ask, answer, and guess',        foot:'Pick a secret · ask or guess · crack it first' },
   { id:'dab',     emoji:'▦',  title:'Dots & Boxes',    sub:'Claim the most boxes',          foot:'Draw a line · claim a box · most boxes wins' },
+  { id:'xo',      emoji:'✕',  title:'XO',              sub:'Tic-tac-toe, but it fades',     foot:'Place a mark · your oldest fades after 3 · plan ahead' },
 ];
 
 let currentTeardown = null;
@@ -83,6 +84,10 @@ async function loadGame(id){
       const mod = await import('./games/dab.js');
       currentTeardown = mod.teardownDab;
       await mod.initDab(app, chip, exitToMenu);
+    } else if(id==='xo'){
+      const mod = await import('./games/xo.js');
+      currentTeardown = mod.teardownXo;
+      await mod.initXo(app, chip, exitToMenu);
     } else {
       exitToMenu();
     }

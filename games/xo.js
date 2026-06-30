@@ -10,29 +10,27 @@ let code='';
 
 let app, chip, exitToMenu;
 let S=null, err='', poll=null, lastSig='';
-let newSize=4;
-let lastMoveFlash=null;
+let lastMoveCell=null;
 
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const PCOLORS={1:'#E2563B',2:'#3B6FE2'};
+const MARK={1:'X',2:'O'};
 
 async function rpc(fn,args){const{data,error}=await sb.rpc(fn,args); if(error) throw new Error((error.message||'').replace(/^.*?:\s*/,'')||'error'); return data;}
 const FR={GAME_NOT_FOUND:'No game with that code. Check it and try again.',GAME_FULL:'That game is already full.',
   NOT_YOUR_TURN:'Hold on — it’s not your turn yet.',NOT_PLAYING:'The game isn’t ready yet.',
-  ALREADY_PLAYED:'That line is already drawn.',OUT_OF_RANGE:'That move is out of bounds.',
+  ALREADY_PLAYED:'That square is already taken.',OUT_OF_RANGE:'That move is out of bounds.',
   NOT_A_PLAYER:'You’re not in this game anymore.',WAITING_FOR_PLAYER:'Waiting for your opponent to join.'};
 const fr=m=>FR[m]||m||'Something went wrong.';
 
 function P(){ return S?.players||[]; }
 function me(){ return P().find(p=>p.slot===S.my_slot); }
 function opp(){ return P().find(p=>p.slot!==S.my_slot); }
-function W(){ return S?.config?.w||4; }
-function H(){ return S?.config?.h||4; }
 
 async function createGame(){
   err='';
   try{
-    code=await rpc('arc_create_game',{p_type:'dab',p_config:{w:newSize,h:newSize},p_name:name,p_token:token});
+    code=await rpc('arc_create_game',{p_type:'xo',p_config:{},p_name:name,p_token:token});
     await refresh(true); startPoll();
   }catch(e){err=fr(e.message);render();}
 }
@@ -45,14 +43,14 @@ async function joinGame(){
 }
 async function startGame(){
   err='';
-  try{ await rpc('dab_start',{p_code:code,p_token:token}); await refresh(true); }
+  try{ await rpc('xo_start',{p_code:code,p_token:token}); await refresh(true); }
   catch(e){err=fr(e.message);render();}
 }
-async function playLine(orient,row,col){
+async function playCell(cellIdx){
   err='';
   try{
-    const r=await rpc('dab_play_line',{p_code:code,p_token:token,p_orient:orient,p_row:row,p_col:col});
-    lastMoveFlash = r.boxes_completed>0 ? r : null;
+    const r=await rpc('xo_play',{p_code:code,p_token:token,p_cell:cellIdx});
+    lastMoveCell=cellIdx;
     await refresh(true);
   }catch(e){err=fr(e.message);render();}
 }
@@ -74,17 +72,9 @@ function viewSetup(){
   return `${err?`<div class="err">${esc(err)}</div>`:''}
   <button class="linkbtn" id="backHome" style="display:block;margin:0 0 10px">‹ Arcade menu</button>
   <div class="card">
-    <p class="lede">Take turns drawing one line between two dots. Complete a box and it's yours — plus you get to go again. Most boxes when the grid fills up wins.</p>
+    <p class="lede">Classic 3×3 tic-tac-toe with a twist: you only ever hold 3 marks on the board. Your 4th move bumps your oldest mark off the board first — so plan ahead, your earliest moves don't stick around forever.</p>
     <label class="fld" for="nameIn">Your name</label>
     <input class="text" id="nameIn" maxlength="16" placeholder="e.g. ${esc(name||'You')}" value="${esc(name)}" />
-    <div style="height:16px"></div>
-    <label class="fld">Grid size</label>
-    <div class="seg" id="segSize">
-      <button data-s="3" aria-pressed="${newSize===3}">3×3</button>
-      <button data-s="4" aria-pressed="${newSize===4}">4×4</button>
-      <button data-s="5" aria-pressed="${newSize===5}">5×5</button>
-      <button data-s="6" aria-pressed="${newSize===6}">6×6</button>
-    </div>
     <div style="height:16px"></div>
     <button class="btn" id="createBtn">Start a new game</button>
     <div class="divider">or</div>
@@ -105,7 +95,6 @@ function viewLobby(){
       <div class="teambox mine"><h4>You</h4><ul><li>${esc(me()?.name||'You')}</li></ul></div>
       <div class="teambox"><h4>Opponent</h4><ul>${opp()?`<li>${esc(opp().name)}</li>`:'<li class="w">waiting…</li>'}</ul></div>
     </div>
-    <p class="lede" style="margin:14px 0 0">Grid: ${W()}×${H()} boxes</p>
   </div>
   <div class="card">
     ${full ? `<button class="btn" id="startBtn">Start game</button>` : `<p class="lede" style="margin:0">Share the code above — waiting for a second player to join.</p>`}
@@ -114,48 +103,41 @@ function viewLobby(){
 }
 
 function renderBoard(){
-  const w=W(), h=H();
   const st=S.state||{};
-  const hLines=st.h_lines||[], vLines=st.v_lines||[], boxes=st.boxes||[];
-  const cell=44, dotR=4, pad=18;
-  const svgW = pad*2 + w*cell, svgH = pad*2 + h*cell;
+  const board = st.board||[0,0,0,0,0,0,0,0,0];
+  const dims = S.xo_dims||{};
   const myTurn = S.turn===S.my_slot;
+  const cell=72, pad=10, gap=6;
+  const size = pad*2 + cell*3 + gap*2;
 
-  const lineEvents = (S.events||[]).filter(e=>e.kind==='line');
-  const lastMove = lineEvents.length ? lineEvents[lineEvents.length-1] : null;
+  let svg = `<svg viewBox="0 0 ${size} ${size}" style="width:100%;max-width:320px;height:auto;display:block;margin:0 auto" xmlns="http://www.w3.org/2000/svg">`;
 
-  let svg = `<svg viewBox="0 0 ${svgW} ${svgH}" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">`;
+  for(let r=0;r<3;r++) for(let c=0;c<3;c++){
+    const idx = r*3+c;
+    const x = pad + c*(cell+gap), y = pad + r*(cell+gap);
+    const val = board[idx];
+    const isDimmed = (dims['1']===idx) || (dims['2']===idx);
+    const isLast = lastMoveCell===idx;
+    const clickable = val===0 && myTurn;
 
-  for(let r=0;r<h;r++) for(let c=0;c<w;c++){
-    const owner = boxes[r]?.[c]||0;
-    if(owner){
-      const x=pad+c*cell, y=pad+r*cell;
-      svg += `<rect x="${x+3}" y="${y+3}" width="${cell-6}" height="${cell-6}" rx="6" fill="${PCOLORS[owner]}" opacity="0.16"/>`;
+    svg += `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="12"
+      fill="${isLast?'#FCEEEA':'#FCFAF5'}" stroke="${isLast?'#E2563B':'#EAE1D2'}" stroke-width="${isLast?2.5:1.5}"
+      ${clickable?`class="xocell" data-cell="${idx}" style="cursor:pointer"`:''}/>`;
+
+    if(val){
+      const color = PCOLORS[val];
+      const opacity = isDimmed ? 0.35 : 1;
+      const tx = x+cell/2, ty = y+cell/2;
+      svg += `<text x="${tx}" y="${ty}" text-anchor="middle" dominant-baseline="central"
+        font-family="'Space Mono',monospace" font-weight="700" font-size="${cell*0.5}"
+        fill="${color}" opacity="${opacity}">${MARK[val]}</text>`;
+      if(isDimmed){
+        svg += `<text x="${tx}" y="${y+cell-10}" text-anchor="middle" font-family="Inter" font-weight="700"
+          font-size="9" fill="${color}" opacity="0.8">FADING</text>`;
+      }
+    } else if(clickable){
+      svg += `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" fill="transparent" class="xocell" data-cell="${idx}" style="cursor:pointer"/>`;
     }
-  }
-  for(let r=0;r<=h;r++) for(let c=0;c<w;c++){
-    const drawn = hLines[r]?.[c];
-    const isLast = lastMove && lastMove.payload.orient==='h' && lastMove.payload.row===r && lastMove.payload.col===c;
-    const x=pad+c*cell, y=pad+r*cell;
-    const clickable = !drawn && myTurn;
-    const stroke = isLast ? PCOLORS[lastMove.slot] : (drawn?'#211C17':'#EAE1D2');
-    svg += `<line x1="${x}" y1="${y}" x2="${x+cell}" y2="${y}" stroke="${stroke}" stroke-width="${drawn?5:3}" stroke-linecap="round"
-      ${clickable?`class="dabline" data-orient="h" data-row="${r}" data-col="${c}" style="cursor:pointer"`:''}/>`;
-    if(clickable) svg += `<rect x="${x}" y="${y-9}" width="${cell}" height="18" fill="transparent" class="dabline" data-orient="h" data-row="${r}" data-col="${c}" style="cursor:pointer"/>`;
-  }
-  for(let r=0;r<h;r++) for(let c=0;c<=w;c++){
-    const drawn = vLines[r]?.[c];
-    const isLast = lastMove && lastMove.payload.orient==='v' && lastMove.payload.row===r && lastMove.payload.col===c;
-    const x=pad+c*cell, y=pad+r*cell;
-    const clickable = !drawn && myTurn;
-    const stroke = isLast ? PCOLORS[lastMove.slot] : (drawn?'#211C17':'#EAE1D2');
-    svg += `<line x1="${x}" y1="${y}" x2="${x}" y2="${y+cell}" stroke="${stroke}" stroke-width="${drawn?5:3}" stroke-linecap="round"
-      ${clickable?`class="dabline" data-orient="v" data-row="${r}" data-col="${c}" style="cursor:pointer"`:''}/>`;
-    if(clickable) svg += `<rect x="${x-9}" y="${y}" width="18" height="${cell}" fill="transparent" class="dabline" data-orient="v" data-row="${r}" data-col="${c}" style="cursor:pointer"/>`;
-  }
-  for(let r=0;r<=h;r++) for(let c=0;c<=w;c++){
-    const x=pad+c*cell, y=pad+r*cell;
-    svg += `<circle cx="${x}" cy="${y}" r="${dotR}" fill="#211C17"/>`;
   }
   svg += `</svg>`;
   return svg;
@@ -163,37 +145,39 @@ function renderBoard(){
 
 function viewPlay(){
   const myTurn = S.turn===S.my_slot;
-  const score = (S.state||{}).score || {1:0,2:0};
-  const myScore = score[String(S.my_slot)] ?? score[S.my_slot] ?? 0;
+  const dims = S.xo_dims||{};
+  const myDim = dims[String(S.my_slot)];
   const oppSlot = S.my_slot===1?2:1;
-  const oppScore = score[String(oppSlot)] ?? score[oppSlot] ?? 0;
-  const flash = lastMoveFlash ? `<div class="card" style="padding:10px 16px;text-align:center;margin-bottom:12px">
-      <span class="pill place">+${lastMoveFlash.boxes_completed} box${lastMoveFlash.boxes_completed>1?'es':''}${lastMoveFlash.extra_turn?' · go again!':''}</span>
-    </div>` : '';
+  const oppDim = dims[String(oppSlot)];
+
+  let warn = '';
+  if(myDim!=null || oppDim!=null){
+    const bits=[];
+    if(myDim!=null) bits.push(`your oldest mark is about to vanish`);
+    if(oppDim!=null) bits.push(`${esc(opp()?.name||'their')} oldest mark is about to vanish`);
+    warn = `<div class="card" style="padding:10px 16px;text-align:center;margin-bottom:12px">
+      <span class="pill corr">⚠ ${bits.join(' · ')}</span>
+    </div>`;
+  }
+
   return `${err?`<div class="err">${esc(err)}</div>`:''}
-  <div class="turn ${myTurn?'you':'them'}"><span class="dot"></span>${myTurn?'Your turn — draw a line':`${esc(opp()?.name||'Opponent')}'s turn`}</div>
+  <div class="turn ${myTurn?'you':'them'}"><span class="dot"></span>${myTurn?`Your turn — you're ${MARK[S.my_slot]}`:`${esc(opp()?.name||'Opponent')}'s turn`}</div>
   <div class="rosters" style="margin-bottom:12px">
-    <div class="teambox mine"><h4>${esc(me()?.name||'You')}</h4><div style="font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:${PCOLORS[S.my_slot]}">${myScore}</div></div>
-    <div class="teambox"><h4>${esc(opp()?.name||'Opponent')}</h4><div style="font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:${PCOLORS[oppSlot]}">${oppScore}</div></div>
+    <div class="teambox mine"><h4>${esc(me()?.name||'You')}</h4><div style="font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:${PCOLORS[S.my_slot]}">${MARK[S.my_slot]}</div></div>
+    <div class="teambox"><h4>${esc(opp()?.name||'Opponent')}</h4><div style="font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:${PCOLORS[oppSlot]}">${MARK[oppSlot]}</div></div>
   </div>
-  ${flash}
-  <div class="card" style="padding:14px">${renderBoard()}</div>
+  ${warn}
+  <div class="card" style="padding:16px">${renderBoard()}</div>
+  <p class="msub" style="text-align:center;margin-top:10px">Each player keeps at most 3 marks — a 4th move bumps your oldest one off the board.</p>
   <button class="linkbtn" id="leaveBtn" style="display:block;margin:14px auto 0">End game</button>`;
 }
 function viewDone(){
   const iWon = S.winner===S.my_slot;
   const draw = S.winner===0;
-  const score = (S.state||{}).score || {};
-  const oppSlot = S.my_slot===1?2:1;
-  const myScore = score[String(S.my_slot)] ?? 0;
-  const oppScore = score[String(oppSlot)] ?? 0;
   return `<div class="card"><div class="result">
       <span class="eyebrow" style="color:${draw?'var(--muted)':iWon?'var(--green)':'var(--muted)'}">${draw?'Draw':iWon?'You win!':'Game over'}</span>
       <h2>${draw?"It's a tie! 🤝":iWon?'You win! 🎉':`${esc(opp()?.name||'Opponent')} wins`}</h2>
-      <div class="reveal">
-        <div><span class="lbl">You</span><span class="num">${myScore}</span></div>
-        <div><span class="lbl">${esc(opp()?.name||'Them')}</span><span class="num">${oppScore}</span></div>
-      </div></div>
+    </div>
     <button class="btn" id="againBtn">Play again</button>
   </div>
   <button class="linkbtn" id="backHome2" style="display:block;margin:12px auto 0">‹ Arcade menu</button>`;
@@ -213,25 +197,23 @@ function wire(){
   const on=(id,ev,fn)=>{const el=document.getElementById(id); if(el) el.addEventListener(ev,fn);};
   on('backHome','click', ()=>exitToMenu());
   on('backHome2','click', ()=>exitToMenu());
-  document.querySelectorAll('#segSize button').forEach(b=>b.addEventListener('click',()=>{newSize=+b.dataset.s;render();}));
   on('createBtn','click', ()=>{ const n=(document.getElementById('nameIn')?.value||'').trim(); if(n){name=n;localStorage.setItem('arc_name',n);} createGame(); });
   on('joinBtn','click', ()=>{ const n=(document.getElementById('nameIn')?.value||'').trim(); if(n){name=n;localStorage.setItem('arc_name',n);} joinGame(); });
   const ci=document.getElementById('codeIn'); if(ci) ci.addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
   on('copyBtn','click', async()=>{ try{ await navigator.clipboard.writeText(S.code); const b=document.getElementById('copyBtn'); b.textContent='Copied ✓'; setTimeout(()=>b.textContent='Copy game code',1400); }catch(e){} });
   on('startBtn','click', startGame);
-  document.querySelectorAll('.dabline').forEach(el=>el.addEventListener('click',()=>{
-    lastMoveFlash=null;
-    playLine(el.dataset.orient, +el.dataset.row, +el.dataset.col);
+  document.querySelectorAll('.xocell').forEach(el=>el.addEventListener('click',()=>{
+    playCell(+el.dataset.cell);
   }));
   on('leaveBtn','click', leaveGame);
   on('againBtn','click', playAgain);
 }
 
-export async function initDab(containerEl, chipEl, onExit){
+export async function initXo(containerEl, chipEl, onExit){
   app=containerEl; chip=chipEl; exitToMenu=onExit;
-  code=''; S=null; err=''; lastSig=''; lastMoveFlash=null; newSize=4;
+  code=''; S=null; err=''; lastSig=''; lastMoveCell=null;
   render();
 }
-export function teardownDab(){
+export function teardownXo(){
   if(poll){ clearInterval(poll); poll=null; }
 }
