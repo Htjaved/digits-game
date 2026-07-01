@@ -27,11 +27,11 @@ const brandTitle = document.getElementById('brandTitle');
 const foot = document.getElementById('foot');
 
 const GAMES = [
-  { id:'digits',  emoji:'🔢', title:'Digits',          sub:'Crack the secret number',     foot:'Pick a number · trade guesses · crack the code' },
-  { id:'hangman', emoji:'🔤', title:'Hangman',         sub:'Guess letters, race to reveal', foot:'Pick a word · guess letters · don\u2019t run out of lives' },
-  { id:'q20',     emoji:'❓', title:'20 Questions',    sub:'Ask, answer, and guess',        foot:'Pick a secret · ask or guess · crack it first' },
-  { id:'dab',     emoji:'▦',  title:'Dots & Boxes',    sub:'Claim the most boxes',          foot:'Draw a line · claim a box · most boxes wins' },
-  { id:'xo',      emoji:'✕',  title:'XO',              sub:'Tic-tac-toe, but it fades',     foot:'Place a mark · your oldest fades after 3 · plan ahead' },
+  { id:'digits',  emoji:'🔢', banner:'icons/digits-banner.jpg',  title:'Digits',          sub:'Crack the secret number',     foot:'Pick a number · trade guesses · crack the code' },
+  { id:'hangman', emoji:'🔤', banner:'icons/hangman-banner.jpg', title:'Hangman',         sub:'Guess letters, race to reveal', foot:'Pick a word · guess letters · don\u2019t run out of lives' },
+  { id:'q20',     emoji:'❓', banner:'icons/q20-banner.jpg',     title:'20 Questions',    sub:'Ask, answer, and guess',        foot:'Pick a secret · ask or guess · crack it first' },
+  { id:'dab',     emoji:'▦',  banner:'icons/dab-banner.jpg',     title:'Dots & Boxes',    sub:'Claim the most boxes',          foot:'Draw a line · claim a box · most boxes wins' },
+  { id:'xo',      emoji:'✕',  banner:'icons/xo-banner.jpg',      title:'XO',              sub:'Tic-tac-toe, but it fades',     foot:'Place a mark · your oldest fades after 3 · plan ahead' },
 ];
 
 let currentTeardown = null;
@@ -48,8 +48,8 @@ function renderArcadeMenu(){
     </div>
     <div class="modegrid">
       ${GAMES.map(g=>`
-        <button class="modecard ${g.id==='digits'?'primary':''}" data-game="${g.id}">
-          <span class="micon">${g.emoji}</span><span class="mtitle">${esc(g.title)}</span><span class="msub">${esc(g.sub)}</span>
+        <button class="modecard ${g.banner?'bgimg':(g.id==='digits'?'primary':'')}" data-game="${g.id}" aria-label="${esc(g.title)} — ${esc(g.sub)}" ${g.banner?`style="background-image:url(${g.banner})"`:''}>
+          ${g.banner ? '' : `<span class="micon">${g.emoji}</span><span class="mtitle">${esc(g.title)}</span><span class="msub">${esc(g.sub)}</span>`}
         </button>
       `).join('')}
     </div>`;
