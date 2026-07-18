@@ -13,9 +13,10 @@ const FLEET=[{name:'carrier',len:5,label:'Carrier'},{name:'battleship',len:4,lab
 
 let app, chip, exitToMenu;
 let S=null, err='', poll=null, lastSig='';
-let placement={}; // name -> {cells:[[r,c],...]} once placed
-let selectedShip='carrier', orientation='h';
+let placement={}; // name -> {cells:[[r,c],...], orientation} once placed
+let trayOrientation={}; // name -> 'h'|'v', for ships still in the tray, set via rotate button
 let boardTab='fire'; // 'fire' | 'fleet' — which grid the play screen shows
+let drag=null; // active drag state, or null when not dragging
 
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -51,17 +52,11 @@ function cellsValid(cells, exclude){
   }
   return true;
 }
-function tryPlace(r,c){
-  const ship = FLEET.find(f=>f.name===selectedShip);
-  const cells = shipCells(ship.len, r, c, orientation);
-  if(!cellsValid(cells, selectedShip)){ err='That placement is off the grid or overlaps another ship.'; render(); return; }
-  placement[selectedShip] = {cells};
-  err='';
-  const next = FLEET.find(f=>!placement[f.name]);
-  if(next) selectedShip = next.name;
+function clearShip(shipName){
+  delete placement[shipName];
+  if(!trayOrientation[shipName]) trayOrientation[shipName]='h';
   render();
 }
-function clearShip(shipName){ delete placement[shipName]; render(); }
 
 async function createGame(){
   err='';
@@ -87,8 +82,8 @@ async function fireAt(r,c){
   try{ await rpc('bs_fire',{p_code:code,p_token:token,p_row:r,p_col:c}); await refresh(true); }
   catch(e){err=fr(e.message);render();}
 }
-function leaveGame(){ if(poll){clearInterval(poll);poll=null;} code='';S=null;err='';lastSig='';placement={};boardTab='fire'; exitToMenu(); }
-function playAgain(){ if(poll){clearInterval(poll);poll=null;} code='';S=null;err='';lastSig='';placement={};boardTab='fire'; render(); }
+function leaveGame(){ if(poll){clearInterval(poll);poll=null;} if(drag){drag.ghost.remove();drag=null;} code='';S=null;err='';lastSig='';placement={};trayOrientation={};boardTab='fire'; exitToMenu(); }
+function playAgain(){ if(poll){clearInterval(poll);poll=null;} if(drag){drag.ghost.remove();drag=null;} code='';S=null;err='';lastSig='';placement={};trayOrientation={};boardTab='fire'; render(); }
 
 function startPoll(){ if(poll) clearInterval(poll); poll=setInterval(()=>refresh(false),1500); }
 async function refresh(force){
@@ -123,28 +118,36 @@ function gridCellStyle(extra){
   return `width:100%;aspect-ratio:1;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;box-sizing:border-box;${extra||''}`;
 }
 function gridWrapStyle(){
-  return `display:grid;grid-template-columns:repeat(10,1fr);gap:2px;background:var(--line);border-radius:10px;overflow:hidden;padding:2px;`;
+  return `display:grid;grid-template-columns:repeat(10,1fr);gap:2px;background:var(--line);border-radius:10px;overflow:hidden;padding:2px;touch-action:none;`;
 }
 
 function renderPlacementGrid(){
   const placedCells = allPlacedCells(null);
-  let html = `<div style="${gridWrapStyle()}">`;
+  let html = `<div id="placeGrid" style="${gridWrapStyle()}">`;
   for(let r=0;r<10;r++) for(let c=0;c<10;c++){
     const onShip = placedCells.some(([pr,pc])=>pr===r&&pc===c);
-    html += `<div class="bscell" data-r="${r}" data-c="${c}" style="${gridCellStyle(onShip?'background:var(--ink);color:#fff;cursor:pointer':'background:#FCFAF5;cursor:pointer')}"></div>`;
+    html += `<div class="bscell" data-r="${r}" data-c="${c}" style="${gridCellStyle(onShip?'background:var(--ink);color:#fff;cursor:pointer':'background:#FCFAF5;')}"></div>`;
   }
   html += `</div>`;
   return html;
 }
+function renderTray(){
+  const unplaced = FLEET.filter(f=>!placement[f.name]);
+  if(!unplaced.length) return '';
+  return `<div id="shipTray" style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px">
+    ${unplaced.map(f=>{
+      const o = trayOrientation[f.name] || 'h';
+      const squares = Array.from({length:f.len}).map(()=>`<div style="width:20px;height:20px;background:var(--ink);border-radius:4px;flex:none"></div>`).join('');
+      return `<div class="traychip" data-ship="${f.name}" data-orient="${o}" style="display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px 12px;touch-action:none;cursor:grab">
+        <div style="display:flex;flex-direction:${o==='h'?'row':'column'};gap:3px">${squares}</div>
+        <div style="flex:1;font-size:13.5px;font-weight:600">${esc(f.label)} <span style="color:var(--muted);font-weight:500">(${f.len})</span></div>
+        <button class="rotateBtn" data-rotate="${f.name}" style="border:1.5px solid var(--line);background:#FCFAF5;border-radius:8px;width:34px;height:34px;font-size:15px;cursor:pointer">↻</button>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
 function viewPlacement(){
   const allPlaced = FLEET.every(f=>placement[f.name]);
-  const shipRows = FLEET.map(f=>{
-    const done = !!placement[f.name];
-    const active = selectedShip===f.name && !done;
-    return `<button class="btn ${done?'ghost':active?'':'ghost'}" data-ship="${f.name}" style="margin-bottom:8px;${done?'opacity:.55':''}${active?'outline:2px solid var(--tomato)':''}">
-      ${esc(f.label)} (${f.len}) ${done?'✓ placed — tap to clear':''}
-    </button>`;
-  }).join('');
   return `${err?`<div class="err">${esc(err)}</div>`:''}
   <div class="card">
     <div class="bigcode">${esc(S.code)}</div>
@@ -158,17 +161,121 @@ function viewPlacement(){
   </div>
   ${me()?.ready ? `<div class="card"><p class="lede" style="margin:0">Your fleet is locked in. Waiting on your opponent…</p></div>` : `
   <div class="card">
-    <p class="lede" style="margin-bottom:10px">Place all 5 ships. Pick a ship, choose an orientation, then tap the grid where it should start.</p>
-    <div style="display:flex;flex-direction:column;gap:0">${shipRows}</div>
-    <div class="seg" id="orientSeg" style="margin:10px 0 14px">
-      <button data-o="h" aria-pressed="${orientation==='h'}">Horizontal</button>
-      <button data-o="v" aria-pressed="${orientation==='v'}">Vertical</button>
-    </div>
+    <p class="lede" style="margin-bottom:10px">Drag a ship onto the grid to place it. Tap ↻ to rotate before dragging. Tap a placed ship to send it back.</p>
+    ${renderTray()}
     ${renderPlacementGrid()}
     <div style="height:16px"></div>
     <button class="btn" id="lockFleetBtn" ${allPlaced?'':'disabled'}>Lock in my fleet</button>
   </div>`}
   <button class="linkbtn" id="leaveBtn" style="display:block;margin:14px auto 0">Leave game</button>`;
+}
+
+// ---- drag-and-drop placement (Pointer Events — unified mouse/touch) ----
+function clearPreview(){
+  document.querySelectorAll('#placeGrid .bscell').forEach(el=>{
+    el.style.background = el.dataset.hasShip==='1' ? 'var(--ink)' : '#FCFAF5';
+    el.style.color = el.dataset.hasShip==='1' ? '#fff' : '';
+  });
+}
+function showPreview(cells, valid){
+  clearPreview();
+  const color = valid ? 'rgba(31,122,77,.35)' : 'rgba(226,86,59,.35)';
+  cells.forEach(([r,c])=>{
+    const el = document.querySelector(`#placeGrid .bscell[data-r="${r}"][data-c="${c}"]`);
+    if(el) el.style.background = color;
+  });
+}
+function cellUnderPoint(x,y){
+  const el = document.elementFromPoint(x,y);
+  const cell = el && el.closest ? el.closest('#placeGrid .bscell') : null;
+  if(!cell) return null;
+  return {r:+cell.dataset.r, c:+cell.dataset.c};
+}
+function startDrag(pointerId, shipName, len, orientation, origin, x, y){
+  const ghost = document.createElement('div');
+  ghost.style.cssText = `position:fixed;left:0;top:0;pointer-events:none;z-index:9999;display:flex;flex-direction:${orientation==='h'?'row':'column'};gap:3px;transform:translate(-50%,-50%);`;
+  for(let i=0;i<len;i++){
+    const sq = document.createElement('div');
+    sq.style.cssText = 'width:28px;height:28px;background:var(--tomato);border-radius:5px;box-shadow:0 4px 10px rgba(0,0,0,.25)';
+    ghost.appendChild(sq);
+  }
+  document.body.appendChild(ghost);
+  drag = { pointerId, shipName, len, orientation, origin, ghost };
+  moveGhost(x,y);
+}
+function moveGhost(x,y){ if(drag) { drag.ghost.style.left = x+'px'; drag.ghost.style.top = y+'px'; } }
+function updateDragPreview(x,y){
+  if(!drag) return;
+  moveGhost(x,y);
+  const anchor = cellUnderPoint(x,y);
+  if(!anchor){ clearPreview(); drag.lastCells=null; drag.lastValid=false; return; }
+  const cells = shipCells(drag.len, anchor.r, anchor.c, drag.orientation);
+  const valid = cellsValid(cells, drag.origin==='grid'?drag.shipName:null);
+  showPreview(cells, valid);
+  drag.lastCells = cells; drag.lastValid = valid;
+}
+function endDrag(){
+  if(!drag) return;
+  const { shipName, orientation, origin, lastCells, lastValid, ghost } = drag;
+  ghost.remove();
+  clearPreview();
+  if(lastValid && lastCells){
+    placement[shipName] = { cells: lastCells, orientation };
+  } else if(origin==='grid'){
+    // dropped somewhere invalid after picking it up from the grid — it's already removed
+    // from `placement` (see pointerdown handler below), so it just returns to the tray.
+  }
+  drag = null;
+  render();
+}
+function initPlacementDrag(){
+  const grid = document.getElementById('placeGrid');
+  if(!grid) return;
+  // mark which cells currently belong to a placed ship, for preview color restoration
+  document.querySelectorAll('#placeGrid .bscell').forEach(el=>{ el.dataset.hasShip = (el.style.background==='var(--ink)')?'1':'0'; });
+
+  document.querySelectorAll('.traychip').forEach(chip=>{
+    chip.addEventListener('pointerdown', e=>{
+      if(e.target.closest('.rotateBtn')) return; // rotate button handles its own tap
+      const shipName = chip.dataset.ship;
+      const ship = FLEET.find(f=>f.name===shipName);
+      const orientation = trayOrientation[shipName] || 'h';
+      try{ chip.setPointerCapture(e.pointerId); }catch(err){}
+      startDrag(e.pointerId, shipName, ship.len, orientation, 'tray', e.clientX, e.clientY);
+      const onMove = ev => { if(ev.pointerId===e.pointerId) updateDragPreview(ev.clientX, ev.clientY); };
+      const onUp = ev => {
+        if(ev.pointerId!==e.pointerId) return;
+        chip.removeEventListener('pointermove', onMove);
+        chip.removeEventListener('pointerup', onUp);
+        chip.removeEventListener('pointercancel', onUp);
+        endDrag();
+      };
+      chip.addEventListener('pointermove', onMove);
+      chip.addEventListener('pointerup', onUp);
+      chip.addEventListener('pointercancel', onUp);
+    });
+  });
+
+  document.querySelectorAll('.rotateBtn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      const shipName = btn.dataset.rotate;
+      trayOrientation[shipName] = (trayOrientation[shipName]==='v') ? 'h' : 'v';
+      render();
+    });
+  });
+
+  // Tap a placed ship's cells to send it back to the tray (simple, no reposition-drag —
+  // keeps the interaction model small: repositioning is "clear, then drag again").
+  document.querySelectorAll('#placeGrid .bscell').forEach(el=>{
+    if(el.dataset.hasShip==='1'){
+      el.addEventListener('click', ()=>{
+        const r=+el.dataset.r, c=+el.dataset.c;
+        const shipName = Object.keys(placement).find(n=>placement[n].cells.some(([pr,pc])=>pr===r&&pc===c));
+        if(shipName) clearShip(shipName);
+      });
+    }
+  });
 }
 
 function renderFireGrid(){
@@ -260,28 +367,22 @@ function wire(){
   on('joinBtn','click', ()=>{ const n=(document.getElementById('nameIn')?.value||'').trim(); if(n){name=n;localStorage.setItem('arc_name',n);} joinGame(); });
   const ci=document.getElementById('codeIn'); if(ci) ci.addEventListener('keydown',e=>{if(e.key==='Enter')joinGame();});
   on('copyBtn','click', async()=>{ try{ await navigator.clipboard.writeText(S.code); const b=document.getElementById('copyBtn'); b.textContent='Copied ✓'; setTimeout(()=>b.textContent='Copy game code',1400); }catch(e){} });
-  document.querySelectorAll('[data-ship]').forEach(b=>b.addEventListener('click',()=>{
-    const shipName=b.dataset.ship;
-    if(placement[shipName]){ clearShip(shipName); } else { selectedShip=shipName; render(); }
-  }));
-  document.querySelectorAll('#orientSeg button').forEach(b=>b.addEventListener('click',()=>{orientation=b.dataset.o;render();}));
-  document.querySelectorAll('.bscell[data-r]').forEach(el=>el.addEventListener('click',()=>{
-    tryPlace(+el.dataset.r, +el.dataset.c);
-  }));
   on('lockFleetBtn','click', lockFleet);
   document.querySelectorAll('.bscell[data-fire-r]').forEach(el=>el.addEventListener('click',()=>{
     fireAt(+el.dataset.fireR, +el.dataset.fireC);
   }));
   document.querySelectorAll('#boardTabs button').forEach(b=>b.addEventListener('click',()=>{boardTab=b.dataset.btab;render();}));
+  initPlacementDrag();
   on('leaveBtn','click', leaveGame);
   on('againBtn','click', playAgain);
 }
 
 export async function initBattleship(containerEl, chipEl, onExit){
   app=containerEl; chip=chipEl; exitToMenu=onExit;
-  code=''; S=null; err=''; lastSig=''; placement={}; selectedShip='carrier'; orientation='h'; boardTab='fire';
+  code=''; S=null; err=''; lastSig=''; placement={}; trayOrientation={}; boardTab='fire'; drag=null;
   render();
 }
 export function teardownBattleship(){
   if(poll){ clearInterval(poll); poll=null; }
+  if(drag){ drag.ghost.remove(); drag=null; }
 }
