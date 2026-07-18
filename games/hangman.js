@@ -11,6 +11,7 @@ let code='';
 let app, chip, exitToMenu;
 let S=null, err='', poll=null, lastSig='', screen='setup'; // setup | lobby (S exists) handled via S.status
 let wordEntry='';
+let boardTab='mine'; // 'mine' | 'theirs' — which board the play screen is showing
 
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const ALPHA='abcdefghijklmnopqrstuvwxyz'.split('');
@@ -57,10 +58,10 @@ async function guessLetter(letter){
 }
 function leaveGame(){
   if(poll){clearInterval(poll);poll=null;}
-  code='';S=null;err='';lastSig='';wordEntry='';
+  code='';S=null;err='';lastSig='';wordEntry='';boardTab='mine';
   exitToMenu();
 }
-function playAgain(){ if(poll){clearInterval(poll);poll=null;} code='';S=null;err='';lastSig='';wordEntry=''; render(); }
+function playAgain(){ if(poll){clearInterval(poll);poll=null;} code='';S=null;err='';lastSig='';wordEntry='';boardTab='mine'; render(); }
 
 function startPoll(){ if(poll) clearInterval(poll); poll=setInterval(()=>refresh(false),1500); }
 async function refresh(force){
@@ -108,6 +109,19 @@ function renderProgress(){
   if(!mask) return `<span class="msub">No letters found yet</span>`;
   const cells = mask.split('').map(ch=>
     ch==='_' ? `<span class="hmblank">_</span>` : `<span class="hmletter">${esc(ch.toUpperCase())}</span>`
+  ).join('');
+  return `<div class="hmword">${cells}</div>`;
+}
+function theirProgress(){
+  // Mirror of renderProgress(), but computed client-side: my own word (S.my_secret, always
+  // visible to me) masked by which letters the OPPONENT has hit against it. arc_state already
+  // returns the full events log (not just mine), so hitLettersFromEvents(oppSlot()) works the
+  // same way it does for my own guesses — no backend change needed.
+  const mySecret = S.my_secret || '';
+  if(!mySecret) return `<span class="msub">Word not set yet</span>`;
+  const hits = hitLettersFromEvents(oppSlot());
+  const cells = mySecret.split('').map(ch=>
+    hits.includes(ch) ? `<span class="hmletter">${esc(ch.toUpperCase())}</span>` : `<span class="hmblank">_</span>`
   ).join('');
   return `<div class="hmword">${cells}</div>`;
 }
@@ -165,6 +179,27 @@ function viewPlay(){
   const myGuessed = me()?.my_guessed_letters || [];
   const myMisses = missLettersFromEvents(S.my_slot);
   const myHits = hitLettersFromEvents(S.my_slot);
+  const theirHits = hitLettersFromEvents(oppSlot());
+  const theirMisses = missLettersFromEvents(oppSlot());
+  const theirGuessed = [...theirHits, ...theirMisses];
+
+  const tabBar = `<div class="seg" id="boardTabs" style="margin-bottom:14px">
+    <button data-btab="mine" aria-pressed="${boardTab==='mine'}">My board</button>
+    <button data-btab="theirs" aria-pressed="${boardTab==='theirs'}">Their board</button>
+  </div>`;
+
+  const minePanel = `
+    <p class="lede" style="margin-bottom:8px">Letters found in ${esc(opp()?.name||'their')} word so far:</p>
+    ${renderProgress()}
+    <div style="height:16px"></div>
+    ${keyboardGrid(myGuessed)}`;
+
+  const theirsPanel = `
+    <p class="lede" style="margin-bottom:8px">${esc(opp()?.name||'Their')} progress guessing your word:</p>
+    ${theirProgress()}
+    <div style="height:16px"></div>
+    ${theirGuessed.length ? theirGuessed.map(l=>`<span class="pill ${theirHits.includes(l)?'place':'corr'}" style="margin:3px">${l.toUpperCase()}</span>`).join('') : '<div class="empty">They haven\u2019t guessed any letters yet.</div>'}`;
+
   return `${err?`<div class="err">${esc(err)}</div>`:''}
   <div class="turn ${myTurn?'you':'them'}"><span class="dot"></span>${myTurn?`Your turn — guess a letter in ${esc(opp()?.name||'their')} word`:`Waiting for ${esc(opp()?.name||'opponent')}…`}</div>
   <div class="rosters" style="margin-bottom:14px">
@@ -172,10 +207,8 @@ function viewPlay(){
     <div class="teambox"><h4>${esc(opp()?.name||'Opponent')}</h4>${hangmanSvg(6-oppLives)}<div class="liveslabel">${Math.max(oppLives,0)} ${oppLives===1?'life':'lives'} left</div></div>
   </div>
   <div class="card">
-    <p class="lede" style="margin-bottom:8px">Letters found in their word so far:</p>
-    ${renderProgress()}
-    <div style="height:16px"></div>
-    ${keyboardGrid(myGuessed)}
+    ${tabBar}
+    ${boardTab==='mine'?minePanel:theirsPanel}
   </div>
   <div class="grow"></div>
   <div class="receipt"><div class="rhead"><span class="who">Your guesses</span><span class="cnt">${myGuessed.length}</span></div>
@@ -221,13 +254,14 @@ function wire(){
   on('lockWordBtn','click', ()=>{ wordEntry=document.getElementById('wordIn')?.value||''; submitWord(); });
   const wi=document.getElementById('wordIn'); if(wi) wi.addEventListener('keydown',e=>{if(e.key==='Enter'){wordEntry=wi.value;submitWord();}});
   document.querySelectorAll('.kbkey').forEach(k=>k.addEventListener('click',()=>{ if(!k.disabled) guessLetter(k.dataset.letter); }));
+  document.querySelectorAll('#boardTabs button').forEach(b=>b.addEventListener('click',()=>{boardTab=b.dataset.btab;render();}));
   on('leaveBtn','click', leaveGame);
   on('againBtn','click', playAgain);
 }
 
 export async function initHangman(containerEl, chipEl, onExit){
   app=containerEl; chip=chipEl; exitToMenu=onExit;
-  code=''; S=null; err=''; lastSig=''; wordEntry='';
+  code=''; S=null; err=''; lastSig=''; wordEntry=''; boardTab='mine';
   render();
 }
 export function teardownHangman(){

@@ -32,6 +32,7 @@ const GAMES = [
   { id:'q20',     emoji:'❓', banner:'icons/q20-banner.jpg',     title:'20 Questions',    sub:'Ask, answer, and guess',        foot:'Pick a secret · ask or guess · crack it first' },
   { id:'dab',     emoji:'▦',  banner:'icons/dab-banner.jpg',     title:'Dots & Boxes',    sub:'Claim the most boxes',          foot:'Draw a line · claim a box · most boxes wins' },
   { id:'xo',      emoji:'✕',  banner:'icons/xo-banner.jpg',      title:'XO',              sub:'Tic-tac-toe, but it fades',     foot:'Place a mark · your oldest fades after 3 · plan ahead' },
+  { id:'fc',      emoji:'📋', banner:'icons/fc-banner.jpg',      title:'Fill the Category',sub:'Submit words, judge, or guess', foot:'Submit a word · judge it · guess their category to win' },
 ];
 
 let currentTeardown = null;
@@ -88,6 +89,10 @@ async function loadGame(id){
       const mod = await import('./games/xo.js');
       currentTeardown = mod.teardownXo;
       await mod.initXo(app, chip, exitToMenu);
+    } else if(id==='fc'){
+      const mod = await import('./games/fc.js');
+      currentTeardown = mod.teardownFc;
+      await mod.initFc(app, chip, exitToMenu);
     } else {
       exitToMenu();
     }
