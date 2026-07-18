@@ -8,19 +8,19 @@ let token=localStorage.getItem('arc_token'); if(!token){token=uid();localStorage
 let name=localStorage.getItem('arc_name')||'';
 let code='';
 
-// ---- the 50 preset categories, split 25/25 (deterministic per game code) so neither
-// player's 10-option dropdown can reveal what the other might pick ----
+// ---- 50 broad, generative categories: deliberately wide (Nouns, Things inside a house, etc.)
+// rather than narrow enumerable sets, so a determined guesser genuinely can't exhaust the
+// possibility space — that was the whole point of the redesign. Split 25/25 (deterministic
+// per game code) so neither player's 10-option dropdown can reveal what the other might pick.
 const CATEGORIES=[
-  'Pizza toppings','Ice cream flavors','Breakfast foods','Cocktails','Types of pasta','Street foods','Cheeses',
-  'Wonders of the world','Capitals (of countries)','Mountains','Places in Pakistan','Cities/areas in Bahrain','Types of restaurants',
-  'Dog breeds','Birds','Ocean creatures','Extinct animals','Insects',
-  'Movie genres','Sitcom TV shows','Board games','Video games','Pakistani dramas','Movies','Children stories',
-  'Musical instruments','Singers','Music festivals','Dance styles',
-  'Olympic sports','Football teams','Extreme sports','Gym equipment',
-  'Kitchen appliances','School supplies','Types of shoes','Furniture pieces','Tools in a garage',
-  'Superheroes','Historical figures','Fictional villains','Professions','Types of doctors',
-  'Types of weather','Planets and moons','Gemstones','Trees',
-  'Emotions','Holidays','Wedding traditions'
+  'Nouns','Verbs','Adjectives','Words starting with S','Words starting with B','Words with double letters','Compound words',
+  'Things inside a house','Things inside an office','Things inside a kitchen','Things inside a bathroom','Things found in nature','Things found in a city','Things found at a beach','Things found in a school','Things found in a hospital','Things you\u2019d pack for a trip',
+  'Professions','Types of doctors','Fictional characters','Superheroes',
+  'Things that are round','Things that are red','Things made of metal','Things made of wood','Things that can be broken','Things with wheels','Things you wear','Things you plug in','Things you can eat','Things you drink','Things in a toolbox','Things in a backpack',
+  'Things you do in the morning','Things you do before bed','Sports','Hobbies','Emotions',
+  'Animals','Animals that fly','Animals that live in water','Plants',
+  'Movies','TV shows','Songs','Video games','Books',
+  'Things that make noise','Modes of transportation','Things you can hold in one hand'
 ];
 
 // Deterministic PRNG (mulberry32) seeded from the game code, so both devices compute the
@@ -53,7 +53,7 @@ let app, chip, exitToMenu;
 let S=null, err='', poll=null, lastSig='';
 let categoryMode='preset', categorySelect='', categoryCustom='';
 let actionTab='word'; // 'word' | 'guess'
-let wordEntry='', guessEntry='', replyEntry='';
+let wordEntry='', guessEntry='';
 
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -63,7 +63,8 @@ const FR={GAME_NOT_FOUND:'No game with that code. Check it and try again.',GAME_
   BAD_CATEGORY:'Pick or type a category first (1–60 characters).',LOCKED:'The game already started — categories are locked.',
   NOT_A_PLAYER:'You’re not in this game anymore.',BAD_WORD:'Type a word first.',
   NO_PENDING_WORD:'That word isn’t waiting on a judgment.',ALREADY_REPLIED:'You already judged that.',
-  BAD_REPLY:'Keep the reply under 200 characters.',NEED_3_APPROVED:'Get 3 words approved before you can guess the category.',
+  BAD_REPLY:'Keep the reply under 200 characters.',NEED_3_ANSWERED:'Submit 3 words and get answers before you can guess the category.',
+  BAD_VERDICT:'Something went wrong with that judgment — try again.',
   BAD_GUESS:'Type a guess first.',NO_PENDING_GUESS:'That guess isn’t waiting on a judgment.'};
 const fr=m=>FR[m]||m||'Something went wrong.';
 
@@ -71,7 +72,7 @@ function P(){ return S?.players||[]; }
 function me(){ return P().find(p=>p.slot===S.my_slot); }
 function opp(){ return P().find(p=>p.slot!==S.my_slot); }
 function oppSlot(){ return S.my_slot===1?2:1; }
-function approvedCount(slot){ return Number(S?.state?.approved_count?.[String(slot)] ?? 0); }
+function answeredCount(slot){ return Number(S?.state?.answered_count?.[String(slot)] ?? 0); }
 // The single pending action (a submitted word or a category guess) awaiting judgment — turn=0
 // is the backend's signal that something is parked in limbo, mirroring q20's guess flow.
 function pendingEvent(){
@@ -79,10 +80,9 @@ function pendingEvent(){
   const events = S.events||[];
   return events.slice().reverse().find(e => (e.kind==='word'||e.kind==='guess_category') && !e.payload.replied) || null;
 }
-// Words submitted BY `slot` that were approved/rejected — i.e. words that do/don't fit the
-// OTHER player's category (the one `slot` was submitting into).
-function confirmedWords(slot){ return (S.events||[]).filter(e=>e.kind==='word' && e.slot===slot && e.payload.replied && e.payload.approved); }
-function rejectedWords(slot){ return (S.events||[]).filter(e=>e.kind==='word' && e.slot===slot && e.payload.replied && !e.payload.approved); }
+// Words submitted BY `slot` (into the OTHER player's category), grouped by judged verdict —
+// 'yes'/'no'/'could_be'/'close'.
+function wordsByVerdict(slot, verdict){ return (S.events||[]).filter(e=>e.kind==='word' && e.slot===slot && e.payload.replied && e.payload.verdict===verdict); }
 function categoryGuesses(){ return (S.events||[]).filter(e=>e.kind==='guess_category' && e.payload.replied); }
 
 async function createGame(){
@@ -118,16 +118,14 @@ async function submitGuess(){
   try{ await rpc('fc_guess_category',{p_code:code,p_token:token,p_guess:g}); guessEntry=''; await refresh(true); }
   catch(e){err=fr(e.message);render();}
 }
-async function judgeWord(eventId, approved){
+async function judgeWord(eventId, verdict){
   err='';
-  const reply=replyEntry.trim();
-  try{ await rpc('fc_reply_word',{p_code:code,p_token:token,p_event_id:eventId,p_approved:approved,p_reply:reply||null}); replyEntry=''; await refresh(true); }
+  try{ await rpc('fc_reply_word',{p_code:code,p_token:token,p_event_id:eventId,p_verdict:verdict}); await refresh(true); }
   catch(e){err=fr(e.message);render();}
 }
 async function judgeGuess(eventId, correct){
   err='';
-  const reply=replyEntry.trim();
-  try{ await rpc('fc_reply_guess',{p_code:code,p_token:token,p_event_id:eventId,p_correct:correct,p_reply:reply||null}); replyEntry=''; await refresh(true); }
+  try{ await rpc('fc_reply_guess',{p_code:code,p_token:token,p_event_id:eventId,p_correct:correct,p_reply:null}); await refresh(true); }
   catch(e){err=fr(e.message);render();}
 }
 function leaveGame(){ if(poll){clearInterval(poll);poll=null;} code='';S=null;err='';lastSig=''; exitToMenu(); }
@@ -207,22 +205,26 @@ function viewPlay(){
   const pend = pendingEvent();
   const iAmJudge = pend && pend.slot !== S.my_slot;
   const waitingOnJudge = pend && pend.slot === S.my_slot;
-  const myApproved = approvedCount(S.my_slot);
-  const oppApproved = approvedCount(oppSlot());
-  const canGuess = myApproved >= 3;
+  const myAnswered = answeredCount(S.my_slot);
+  const canGuess = myAnswered >= 3;
 
   let actionBlock = '';
   if(pend && iAmJudge){
     const isWord = pend.kind==='word';
     actionBlock = `<div class="card">
       <p class="lede" style="margin-bottom:10px"><b>${esc(opp()?.name||'They')}</b> ${isWord?'submitted a word for your category':'guessed your category'}:<br>"${esc(pend.payload.text)}"</p>
-      <p class="lede" style="margin-bottom:8px">${isWord?'Does it fit your category?':'Did they get it exactly right?'}</p>
-      <input class="text" id="replyIn" maxlength="200" placeholder="Optional reply, e.g. \u201cclose, but no\u201d" autocomplete="off" />
-      <div style="height:10px"></div>
+      <p class="lede" style="margin-bottom:10px">${isWord?'Does it fit your category?':'Did they get it exactly right?'}</p>
+      ${isWord ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="btn" id="judgeYes" style="background:var(--green)">Yes</button>
+        <button class="btn ghost" id="judgeNo">No</button>
+        <button class="btn ghost" id="judgeCouldBe">Could be</button>
+        <button class="btn ghost" id="judgeClose">Close</button>
+      </div>` : `
       <div class="row" style="gap:8px">
-        <button class="btn" id="judgeYes" style="background:var(--green)">${isWord?'Fits':'Correct'}</button>
-        <button class="btn ghost" id="judgeNo">${isWord?'Doesn\u2019t fit':'Not quite'}</button>
-      </div>
+        <button class="btn" id="judgeYes" style="background:var(--green)">Correct</button>
+        <button class="btn ghost" id="judgeNo">Not quite</button>
+      </div>`}
     </div>`;
   } else if(pend && waitingOnJudge){
     actionBlock = `<div class="card"><p class="lede" style="margin:0">Waiting for ${esc(opp()?.name||'them')} to judge…</p></div>`;
@@ -238,33 +240,43 @@ function viewPlay(){
         <div style="height:12px"></div>
         <button class="btn" id="wordBtn">Submit</button>
       ` : canGuess ? `
-        <p class="lede" style="margin-bottom:8px">Guess ${esc(opp()?.name||'their')} category outright. Get it right and you win instantly.</p>
+        <p class="lede" style="margin-bottom:4px">Guess ${esc(opp()?.name||'their')} category outright. Get it right and you win instantly.</p>
+        <p style="margin:0 0 10px;font-size:12px;color:var(--muted);font-weight:600">You've answered ${myAnswered}/3 words — guessing unlocked</p>
         <input class="text" id="gIn" maxlength="60" placeholder="Your guess…" autocomplete="off" />
         <div style="height:12px"></div>
         <button class="btn" id="catGuessBtn">Submit guess</button>
       ` : `
-        <p class="lede" style="margin:0">You need 3 approved words before you can guess. You have ${myApproved}/3.</p>
+        <p class="lede" style="margin:0">Submit at least 3 words before you can guess. You've submitted and gotten answers on ${myAnswered}/3 so far.</p>
       `}
     </div>`;
   } else {
     actionBlock = `<div class="card"><p class="lede" style="margin:0">Waiting for ${esc(opp()?.name||'opponent')}'s turn…</p></div>`;
   }
 
-  const myConfirmed = confirmedWords(S.my_slot);      // words I submitted that fit THEIR category
-  const myRejected = rejectedWords(S.my_slot);
-  const theirConfirmed = confirmedWords(oppSlot());   // words they submitted that fit YOUR category
-  const theirRejected = rejectedWords(oppSlot());
+  // Fits their category = words I submitted into THEIR category, grouped by verdict.
+  // Fits your category = words they submitted into MY category, grouped by verdict.
   const guesses = categoryGuesses();
-
-  const wordChip = (text, ok) => `<span class="pill ${ok?'place':'corr'}">${esc(text)}</span>`;
-  const chipBoard = (title, confirmed, rejected, emptyMsg) => `
-    <div style="flex:1;min-width:0">
+  const VERDICTS = [
+    {key:'yes', label:'Yes', bg:'var(--green-bg)', fg:'var(--green)'},
+    {key:'no', label:'No', bg:'#F2ECDF', fg:'var(--muted)'},
+    {key:'could_be', label:'Could be', bg:'var(--amber-bg)', fg:'var(--amber)'},
+    {key:'close', label:'Close', bg:'#E7ECFA', fg:'#3B57C9'},
+  ];
+  const wordChip = (text, bg, fg) => `<span class="pill" style="background:${bg};color:${fg}">${esc(text)}</span>`;
+  const chipBoard = (title, slot) => {
+    const groups = VERDICTS.map(v => {
+      const words = wordsByVerdict(slot, v.key);
+      if(!words.length) return '';
+      return `<div style="margin-bottom:8px">
+        <span style="font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em">${v.label}</span>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">${words.map(e=>wordChip(e.payload.text, v.bg, v.fg)).join('')}</div>
+      </div>`;
+    }).join('');
+    return `<div style="flex:1;min-width:0">
       <h4 style="margin:0 0 8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700">${title}</h4>
-      <div style="display:flex;flex-wrap:wrap;gap:6px">
-        ${confirmed.length ? confirmed.map(e=>wordChip(e.payload.text,true)).join('') : `<span style="font-size:12.5px;color:var(--muted);font-style:italic">${emptyMsg}</span>`}
-      </div>
-      ${rejected.length ? `<p style="margin:9px 0 0;font-size:11.5px;color:var(--muted);line-height:1.5">Didn't fit: ${rejected.map(e=>esc(e.payload.text)).join(', ')}</p>` : ''}
+      ${groups || `<span style="font-size:12.5px;color:var(--muted);font-style:italic">Nothing yet</span>`}
     </div>`;
+  };
 
   const guessesBlock = guesses.length ? `<div class="card">
     <h4 style="margin:0 0 8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700">Category guesses</h4>
@@ -280,16 +292,12 @@ function viewPlay(){
     <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700">Your category</span>
     <div style="font-size:17px;font-weight:700;margin-top:2px">${esc(S.my_secret||'')}</div>
   </div>
-  <div class="rosters" style="margin-bottom:12px">
-    <div class="teambox mine"><h4>${esc(me()?.name||'You')}</h4><div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700">${myApproved}/3 approved</div></div>
-    <div class="teambox"><h4>${esc(opp()?.name||'Opponent')}</h4><div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700">${oppApproved}/3 approved</div></div>
-  </div>
   ${actionBlock}
   <div class="grow"></div>
   <div class="card">
     <div style="display:flex;gap:16px">
-      ${chipBoard('Fits their category', myConfirmed, myRejected, 'Nothing confirmed yet')}
-      ${chipBoard('Fits your category', theirConfirmed, theirRejected, 'Nothing confirmed yet')}
+      ${chipBoard('Fits their category', S.my_slot)}
+      ${chipBoard('Fits your category', oppSlot())}
     </div>
   </div>
   ${guessesBlock}
@@ -341,18 +349,11 @@ function wire(){
   const wi=document.getElementById('wIn'); if(wi) wi.addEventListener('keydown',e=>{if(e.key==='Enter'){wordEntry=wi.value;submitWord();}});
   on('catGuessBtn','click', ()=>{ guessEntry=document.getElementById('gIn')?.value||''; submitGuess(); });
   const gi=document.getElementById('gIn'); if(gi) gi.addEventListener('keydown',e=>{if(e.key==='Enter'){guessEntry=gi.value;submitGuess();}});
-  const ri=document.getElementById('replyIn'); if(ri) ri.addEventListener('keydown',e=>{if(e.key==='Enter') replyEntry=ri.value;});
   const pend = pendingEvent();
-  on('judgeYes','click', ()=>{
-    replyEntry=document.getElementById('replyIn')?.value||'';
-    if(!pend) return;
-    pend.kind==='word' ? judgeWord(pend.id, true) : judgeGuess(pend.id, true);
-  });
-  on('judgeNo','click', ()=>{
-    replyEntry=document.getElementById('replyIn')?.value||'';
-    if(!pend) return;
-    pend.kind==='word' ? judgeWord(pend.id, false) : judgeGuess(pend.id, false);
-  });
+  on('judgeYes','click', ()=>{ if(!pend) return; pend.kind==='word' ? judgeWord(pend.id, 'yes') : judgeGuess(pend.id, true); });
+  on('judgeNo','click', ()=>{ if(!pend) return; pend.kind==='word' ? judgeWord(pend.id, 'no') : judgeGuess(pend.id, false); });
+  on('judgeCouldBe','click', ()=>{ if(!pend) return; judgeWord(pend.id, 'could_be'); });
+  on('judgeClose','click', ()=>{ if(!pend) return; judgeWord(pend.id, 'close'); });
   on('leaveBtn','click', leaveGame);
   on('againBtn','click', playAgain);
 }
@@ -360,7 +361,7 @@ function wire(){
 export async function initFc(containerEl, chipEl, onExit){
   app=containerEl; chip=chipEl; exitToMenu=onExit;
   code=''; S=null; err=''; lastSig=''; categoryMode='preset'; categorySelect=''; categoryCustom='';
-  actionTab='word'; wordEntry=''; guessEntry=''; replyEntry='';
+  actionTab='word'; wordEntry=''; guessEntry='';
   render();
 }
 export function teardownFc(){
