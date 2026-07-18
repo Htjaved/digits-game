@@ -1,16 +1,17 @@
 :root{
-    --paper:#FBF7EF; --card:#FFFFFF; --ink:#211C17; --muted:#8C8377;
+    --paper:#FBF7EF; --paper2:#F3EFE6; --card:#FFFFFF; --ink:#211C17; --muted:#8C8377;
     --line:#EAE1D2; --tomato:#E2563B; --tomato-d:#C7472E;
     --green:#1F7A4D; --green-bg:#E7F2EB; --amber:#B4640F; --amber-bg:#F7ECDB;
     --shadow:0 1px 0 rgba(33,28,23,.04), 0 12px 30px -18px rgba(33,28,23,.35);
+    --gamecard:#1D1B18; --gamecard2:#242220;
   }
   *{box-sizing:border-box}
   html,body{margin:0}
   body{
     font-family:Inter,system-ui,sans-serif; color:var(--ink);
-    background:var(--paper);
-    background-image:radial-gradient(rgba(33,28,23,.035) 1px, transparent 1.4px);
-    background-size:18px 18px;
+    background:linear-gradient(180deg,var(--paper),var(--paper2));
+    background-image:radial-gradient(rgba(33,28,23,.035) 1px, transparent 1.4px), linear-gradient(180deg,var(--paper),var(--paper2));
+    background-size:18px 18px, 100% 100%;
     min-height:100dvh; -webkit-font-smoothing:antialiased;
     padding:max(16px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom));
     display:flex; justify-content:center;
@@ -137,10 +138,29 @@
   .mtitle{font-family:Fraunces,serif; font-style:italic; font-weight:600; font-size:19px; color:var(--ink)}
   .msub{font-size:12.5px; color:var(--muted)}
 
-  .modecard.bgimg{
+  /* Arcade menu grid (index.html only) — distinct from .modecard above, which digits.js's
+     internal Online/Local/Bot mode picker also uses for a totally different flat-card layout.
+     Keeping these separate avoids the two contexts fighting over one class name. */
+  .archead{padding:2px 2px 20px}
+  .archead .sub{color:var(--muted); font-size:14.5px; line-height:1.5; margin:8px 0 0; max-width:34ch}
+  .gamegrid{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  .gamecard{
+    --glow: var(--tomato);
+    position:relative; aspect-ratio:5/6; border-radius:20px; overflow:hidden;
+    background:linear-gradient(160deg,var(--gamecard),var(--gamecard2));
     background-size:cover; background-position:center;
-    min-height:90px; padding:0; display:block; overflow:hidden;
+    box-shadow:0 8px 20px -10px rgba(0,0,0,.4);
+    transition:transform .18s ease, box-shadow .18s ease;
+    display:flex; flex-direction:column; justify-content:flex-end;
+    cursor:pointer; border:1px solid rgba(255,255,255,.06); padding:0; text-align:left;
   }
+  .gamecard:hover{ transform:translateY(-5px); box-shadow:0 20px 40px -16px rgba(0,0,0,.5), 0 0 0 2px var(--glow), 0 0 24px -4px var(--glow); }
+  .gamecard:active{ transform:translateY(-2px) scale(.97); }
+  .gamecard .cardinfo{ position:relative; padding:14px 13px; background:linear-gradient(0deg, rgba(0,0,0,.6), transparent 92%); }
+  .gamecard .cardtitle{ font-family:Inter,sans-serif; font-weight:800; font-size:16px; color:#fff; margin:0 0 2px; letter-spacing:-.01em; text-shadow:0 1px 6px rgba(0,0,0,.5) }
+  .gamecard .cardplayers{ font-family:'Space Mono',monospace; font-size:10px; color:rgba(255,255,255,.7); font-weight:700; letter-spacing:.04em }
+  .gamecard .carddot{ position:absolute; top:12px; right:12px; width:9px; height:9px; border-radius:50%; background:var(--glow); box-shadow:0 0 8px var(--glow) }
+  @media (prefers-reduced-motion:reduce){.gamecard{transition:none}}
   .kbgrid{display:grid; grid-template-columns:repeat(7,1fr); gap:6px}
   .kbkey{height:38px; border:1.5px solid var(--line); background:#fff; border-radius:9px; font-family:'Space Mono',monospace;
     font-size:14px; font-weight:700; color:var(--ink); cursor:pointer}

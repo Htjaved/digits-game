@@ -27,12 +27,13 @@ const brandTitle = document.getElementById('brandTitle');
 const foot = document.getElementById('foot');
 
 const GAMES = [
-  { id:'digits',  emoji:'🔢', banner:'icons/digits-banner.jpg',  title:'Digits',          sub:'Crack the secret number',     foot:'Pick a number · trade guesses · crack the code' },
-  { id:'hangman', emoji:'🔤', banner:'icons/hangman-banner.jpg', title:'Hangman',         sub:'Guess letters, race to reveal', foot:'Pick a word · guess letters · don\u2019t run out of lives' },
-  { id:'q20',     emoji:'❓', banner:'icons/q20-banner.jpg',     title:'20 Questions',    sub:'Ask, answer, and guess',        foot:'Pick a secret · ask or guess · crack it first' },
-  { id:'dab',     emoji:'▦',  banner:'icons/dab-banner.jpg',     title:'Dots & Boxes',    sub:'Claim the most boxes',          foot:'Draw a line · claim a box · most boxes wins' },
-  { id:'xo',      emoji:'✕',  banner:'icons/xo-banner.jpg',      title:'XO',              sub:'Tic-tac-toe, but it fades',     foot:'Place a mark · your oldest fades after 3 · plan ahead' },
-  { id:'fc',      emoji:'📋', banner:'icons/fc-banner.jpg',      title:'Fill the Category',sub:'Submit words, judge, or guess', foot:'Submit a word · judge it · guess their category to win' },
+  { id:'digits',  cover:'icons/digits-cover.jpg',     glow:'#3DDC84', title:'Digits',            sub:'Crack the secret number',       foot:'Pick a number · trade guesses · crack the code' },
+  { id:'hangman', cover:'icons/hangman-cover.jpg',     glow:'#EDE3CC', title:'Hangman',           sub:'Guess letters, race to reveal',  foot:'Pick a word · guess letters · don\u2019t run out of lives' },
+  { id:'q20',     cover:'icons/q20-cover.jpg',         glow:'#9B6BFF', title:'20 Questions',      sub:'Ask, answer, and guess',         foot:'Pick a secret · ask or guess · crack it first' },
+  { id:'dab',     cover:'icons/dab-cover.jpg',         glow:'#3B6FE2', title:'Dots & Boxes',      sub:'Claim the most boxes',           foot:'Draw a line · claim a box · most boxes wins' },
+  { id:'xo',      cover:'icons/xo-cover.jpg',          glow:'#2FD5D5', title:'XO',                sub:'Tic-tac-toe, but it fades',      foot:'Place a mark · your oldest fades after 3 · plan ahead' },
+  { id:'fc',      cover:'icons/fc-cover.jpg',          glow:'#F2A93B', title:'Fill the Category', sub:'Submit words, judge, or guess',  foot:'Submit a word · judge it · guess their category to win' },
+  { id:'battleship', cover:'icons/battleship-cover.jpg', glow:'#E2563B', title:'Battleship',      sub:'Find, hit, and sink the fleet',  foot:'Place your fleet · fire · sink every ship to win' },
 ];
 
 let currentTeardown = null;
@@ -44,13 +45,17 @@ function renderArcadeMenu(){
   foot.textContent = 'Pick a game · pick a mode · play it out';
   chip.innerHTML = '';
   app.innerHTML = `
-    <div class="card">
-      <p class="lede">Small two-player games built for two phones — or one, passed back and forth. Pick one to start.</p>
+    <div class="archead">
+      <p class="sub">Quick two-player games. Pass one phone, or play across two.</p>
     </div>
-    <div class="modegrid">
+    <div class="gamegrid">
       ${GAMES.map(g=>`
-        <button class="modecard ${g.banner?'bgimg':(g.id==='digits'?'primary':'')}" data-game="${g.id}" aria-label="${esc(g.title)} — ${esc(g.sub)}" ${g.banner?`style="background-image:url(${g.banner})"`:''}>
-          ${g.banner ? '' : `<span class="micon">${g.emoji}</span><span class="mtitle">${esc(g.title)}</span><span class="msub">${esc(g.sub)}</span>`}
+        <button class="gamecard" data-game="${g.id}" aria-label="${esc(g.title)} — ${esc(g.sub)}" style="--glow:${g.glow};background-image:url(${g.cover})">
+          <div class="carddot"></div>
+          <div class="cardinfo">
+            <div class="cardtitle">${esc(g.title)}</div>
+            <div class="cardplayers">2 PLAYERS</div>
+          </div>
         </button>
       `).join('')}
     </div>`;
@@ -93,6 +98,10 @@ async function loadGame(id){
       const mod = await import('./games/fc.js');
       currentTeardown = mod.teardownFc;
       await mod.initFc(app, chip, exitToMenu);
+    } else if(id==='battleship'){
+      const mod = await import('./games/battleship.js');
+      currentTeardown = mod.teardownBattleship;
+      await mod.initBattleship(app, chip, exitToMenu);
     } else {
       exitToMenu();
     }
