@@ -54,7 +54,6 @@ let S=null, err='', poll=null, lastSig='';
 let categoryMode='preset', categorySelect='', categoryCustom='';
 let actionTab='word'; // 'word' | 'guess'
 let wordEntry='', guessEntry='', replyEntry='';
-let logTab='all'; // 'all' | 'mine' | 'theirs'
 
 const esc=s=>(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
@@ -80,6 +79,11 @@ function pendingEvent(){
   const events = S.events||[];
   return events.slice().reverse().find(e => (e.kind==='word'||e.kind==='guess_category') && !e.payload.replied) || null;
 }
+// Words submitted BY `slot` that were approved/rejected — i.e. words that do/don't fit the
+// OTHER player's category (the one `slot` was submitting into).
+function confirmedWords(slot){ return (S.events||[]).filter(e=>e.kind==='word' && e.slot===slot && e.payload.replied && e.payload.approved); }
+function rejectedWords(slot){ return (S.events||[]).filter(e=>e.kind==='word' && e.slot===slot && e.payload.replied && !e.payload.approved); }
+function categoryGuesses(){ return (S.events||[]).filter(e=>e.kind==='guess_category' && e.payload.replied); }
 
 async function createGame(){
   err='';
@@ -171,7 +175,11 @@ function viewCategoryEntry(){
         <span class="secflag">${opp()?.has_secret?'✓ category locked':''}</span></div>
     </div>
   </div>
-  ${haveCategory ? `<div class="card"><p class="lede" style="margin:0">Your category is locked in. Waiting on your opponent…</p></div>` : `
+  ${haveCategory ? `<div class="card">
+    <p class="lede" style="margin:0 0 4px">Your category:</p>
+    <p style="margin:0;font-size:19px;font-weight:700">${esc(S.my_secret||'')}</p>
+    <p class="lede" style="margin:10px 0 0">Locked in. Waiting on your opponent…</p>
+  </div>` : `
   <div class="card">
     <p class="lede">Pick a category — your opponent will try to submit words that fit it, or guess it outright.</p>
     <div class="seg" id="catMode">
@@ -242,43 +250,49 @@ function viewPlay(){
     actionBlock = `<div class="card"><p class="lede" style="margin:0">Waiting for ${esc(opp()?.name||'opponent')}'s turn…</p></div>`;
   }
 
-  const renderLine = e=>{
-    const isMe = e.slot===S.my_slot;
-    const who = isMe ? 'You' : (opp()?.name||'Them');
-    if(e.kind==='word'){
-      if(!e.payload.replied) return `<div class="gline"><span class="gdigits" style="font-size:14px;font-family:Inter;font-weight:600">${esc(who)} submitted: <span style="font-weight:400">${esc(e.payload.text)}</span> <span class="tag">awaiting judgment</span></span></div>`;
-      const reply = e.payload.reply ? ` — <span style="font-weight:400;font-style:italic">${esc(e.payload.reply)}</span>` : '';
-      return `<div class="gline ${e.payload.approved?'winrow':''}"><span class="gdigits" style="font-size:14px;font-family:Inter;font-weight:600">${esc(who)} submitted: <span style="font-weight:400">${esc(e.payload.text)}</span> ${e.payload.approved?'✅ fits':'❌ rejected'}${reply}</span></div>`;
-    }
-    if(e.kind==='guess_category'){
-      if(!e.payload.replied) return `<div class="gline"><span class="gdigits" style="font-size:14px;font-family:Inter;font-weight:600">${esc(who)} guessed: <span style="font-weight:400">${esc(e.payload.text)}</span> <span class="tag">awaiting judgment</span></span></div>`;
-      const reply = e.payload.reply ? ` — <span style="font-weight:400;font-style:italic">${esc(e.payload.reply)}</span>` : '';
-      return `<div class="gline ${e.payload.correct?'winrow':''}"><span class="gdigits" style="font-size:14px;font-family:Inter;font-weight:600">${esc(who)} guessed: <span style="font-weight:400">${esc(e.payload.text)}</span> ${e.payload.correct?'✅':'❌'}${reply}</span></div>`;
-    }
-    return '';
-  };
-  const log = (S.events||[]).filter(e=>e.kind==='word'||e.kind==='guess_category');
-  const filteredLog = log.filter(e => logTab==='all' ? true : logTab==='mine' ? e.slot===S.my_slot : e.slot!==S.my_slot);
-  const logHtml = filteredLog.length ? filteredLog.slice().reverse().map(renderLine).join('')
-    : `<div class="empty">${logTab==='all'?'No words or guesses yet — get started!':logTab==='mine'?'You haven\u2019t submitted anything yet.':`${esc(opp()?.name||'They')} haven\u2019t submitted anything yet.`}</div>`;
+  const myConfirmed = confirmedWords(S.my_slot);      // words I submitted that fit THEIR category
+  const myRejected = rejectedWords(S.my_slot);
+  const theirConfirmed = confirmedWords(oppSlot());   // words they submitted that fit YOUR category
+  const theirRejected = rejectedWords(oppSlot());
+  const guesses = categoryGuesses();
+
+  const wordChip = (text, ok) => `<span class="pill ${ok?'place':'corr'}">${esc(text)}</span>`;
+  const chipBoard = (title, confirmed, rejected, emptyMsg) => `
+    <div style="flex:1;min-width:0">
+      <h4 style="margin:0 0 8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700">${title}</h4>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${confirmed.length ? confirmed.map(e=>wordChip(e.payload.text,true)).join('') : `<span style="font-size:12.5px;color:var(--muted);font-style:italic">${emptyMsg}</span>`}
+      </div>
+      ${rejected.length ? `<p style="margin:9px 0 0;font-size:11.5px;color:var(--muted);line-height:1.5">Didn't fit: ${rejected.map(e=>esc(e.payload.text)).join(', ')}</p>` : ''}
+    </div>`;
+
+  const guessesBlock = guesses.length ? `<div class="card">
+    <h4 style="margin:0 0 8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700">Category guesses</h4>
+    ${guesses.slice().reverse().map(e=>{
+      const isMe = e.slot===S.my_slot;
+      return `<div class="gline"><span style="font-size:13.5px">${isMe?'You':esc(opp()?.name||'They')} guessed <b>${esc(e.payload.text)}</b> ${e.payload.correct?'✅ correct':'❌ not quite'}</span></div>`;
+    }).join('')}
+  </div>` : '';
 
   return `${err?`<div class="err">${esc(err)}</div>`:''}
   <div class="turn ${myTurn?'you':'them'}"><span class="dot"></span>${pend?(iAmJudge?`Judge ${esc(opp()?.name||'their')} ${pend.kind==='word'?'word':'guess'}`:`Waiting on ${esc(opp()?.name||'their')} judgment`):myTurn?`Your turn`:`${esc(opp()?.name||'Opponent')}'s turn`}</div>
+  <div class="card" style="padding:13px 16px;margin-bottom:12px">
+    <span style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700">Your category</span>
+    <div style="font-size:17px;font-weight:700;margin-top:2px">${esc(S.my_secret||'')}</div>
+  </div>
   <div class="rosters" style="margin-bottom:12px">
     <div class="teambox mine"><h4>${esc(me()?.name||'You')}</h4><div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700">${myApproved}/3 approved</div></div>
     <div class="teambox"><h4>${esc(opp()?.name||'Opponent')}</h4><div style="font-family:'Space Mono',monospace;font-size:20px;font-weight:700">${oppApproved}/3 approved</div></div>
   </div>
   ${actionBlock}
   <div class="grow"></div>
-  <div class="receipt">
-    <div class="rhead"><span class="who">Game log</span><span class="cnt">${filteredLog.length}</span></div>
-    <div class="seg" id="logTabs" style="margin-bottom:10px">
-      <button data-logtab="all" aria-pressed="${logTab==='all'}">All</button>
-      <button data-logtab="mine" aria-pressed="${logTab==='mine'}">Mine</button>
-      <button data-logtab="theirs" aria-pressed="${logTab==='theirs'}">${esc(opp()?.name||'Theirs')}</button>
+  <div class="card">
+    <div style="display:flex;gap:16px">
+      ${chipBoard('Fits their category', myConfirmed, myRejected, 'Nothing confirmed yet')}
+      ${chipBoard('Fits your category', theirConfirmed, theirRejected, 'Nothing confirmed yet')}
     </div>
-    ${logHtml}
   </div>
+  ${guessesBlock}
   <button class="linkbtn" id="leaveBtn" style="display:block;margin:12px auto 0">End game</button>`;
 }
 function viewDone(){
@@ -323,7 +337,6 @@ function wire(){
     submitCategory();
   });
   document.querySelectorAll('#actionTabs button').forEach(b=>b.addEventListener('click',()=>{actionTab=b.dataset.tab;render();}));
-  document.querySelectorAll('#logTabs button').forEach(b=>b.addEventListener('click',()=>{logTab=b.dataset.logtab;render();}));
   on('wordBtn','click', ()=>{ wordEntry=document.getElementById('wIn')?.value||''; submitWord(); });
   const wi=document.getElementById('wIn'); if(wi) wi.addEventListener('keydown',e=>{if(e.key==='Enter'){wordEntry=wi.value;submitWord();}});
   on('catGuessBtn','click', ()=>{ guessEntry=document.getElementById('gIn')?.value||''; submitGuess(); });
@@ -347,7 +360,7 @@ function wire(){
 export async function initFc(containerEl, chipEl, onExit){
   app=containerEl; chip=chipEl; exitToMenu=onExit;
   code=''; S=null; err=''; lastSig=''; categoryMode='preset'; categorySelect=''; categoryCustom='';
-  actionTab='word'; wordEntry=''; guessEntry=''; replyEntry=''; logTab='all';
+  actionTab='word'; wordEntry=''; guessEntry=''; replyEntry='';
   render();
 }
 export function teardownFc(){
